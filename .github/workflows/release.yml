@@ -40,5 +40,5 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           files: |
-            release-v7/*.exe
+            release/*.exe
           generate_release_notes: true

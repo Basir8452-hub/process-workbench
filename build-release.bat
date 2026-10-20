@@ -82,7 +82,7 @@ if errorlevel 1 (echo [错误] 标签推送失败 & pause & exit /b 1)
 echo.
 echo ============================================================
 echo  [完成] 已打包并推送 v%VER%
-echo  本地 exe 在：%~dp0release-v7\
+echo  本地 exe 在：%~dp0release\
 echo  云端自动打包发布中，稍后到 Releases 页下载：
 echo  https://github.com/Basir8452-hub/process-workbench/releases
 echo ============================================================

@@ -19,7 +19,7 @@
     "appId": "com.process.workbench",
     "productName": "工艺工作台",
     "directories": {
-      "output": "release-v7"
+      "output": "release"
     },
     "files": [
       "dist/**/*",
