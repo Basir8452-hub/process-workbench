@@ -26,6 +26,7 @@ function normalizeStore(input: Partial<StoreData> | null | undefined): StoreData
     reports: Array.isArray(input.reports) ? input.reports : [],
     newsArticles: Array.isArray(input.newsArticles) ? input.newsArticles : [],
     newsDigests: Array.isArray(input.newsDigests) ? input.newsDigests : [],
+    toeflRecords: Array.isArray(input.toeflRecords) ? input.toeflRecords : [],
     settings: { ...empty.settings, ...(input.settings ?? {}) },
   }
 }

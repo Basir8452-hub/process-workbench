@@ -16,6 +16,7 @@ const defaultStore = {
   reports: [],
   newsArticles: [],
   newsDigests: [],
+  toeflRecords: [],
   settings: {},
 }
 

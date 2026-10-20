@@ -1,11 +1,13 @@
 import {
   AlertOutlined,
+  AppstoreOutlined,
   BarChartOutlined,
   BookOutlined,
   CheckSquareOutlined,
   CloudSyncOutlined,
   DashboardOutlined,
   FileTextOutlined,
+  ReadOutlined,
   SettingOutlined,
   ThunderboltOutlined,
 } from '@ant-design/icons'
@@ -25,6 +27,8 @@ export type PageKey =
   | 'report'
   | 'knowledge'
   | 'settings'
+  | 'extensions'
+  | 'toefl'
 
 const PAGE_META: Record<PageKey, { title: string; subtitle: string; icon: ReactNode }> = {
   dashboard: {
@@ -67,6 +71,16 @@ const PAGE_META: Record<PageKey, { title: string; subtitle: string; icon: ReactN
     subtitle: '数据备份、恢复与个人偏好',
     icon: <SettingOutlined />,
   },
+  extensions: {
+    title: '扩展功能',
+    subtitle: '按需加载的轻量工具与学习应用',
+    icon: <AppstoreOutlined />,
+  },
+  toefl: {
+    title: '托福英语学习',
+    subtitle: '每日 10 道选择题，做完一题看一题解析',
+    icon: <ReadOutlined />,
+  },
 }
 
 const MENU_ITEMS = [
@@ -77,6 +91,12 @@ const MENU_ITEMS = [
   { key: 'documents', icon: <FileTextOutlined />, label: '工艺文件台账' },
   { key: 'report', icon: <BarChartOutlined />, label: '周报与复盘' },
   { key: 'knowledge', icon: <BookOutlined />, label: '个人知识库' },
+  {
+    key: 'extensions',
+    icon: <AppstoreOutlined />,
+    label: '扩展功能',
+    children: [{ key: 'toefl', icon: <ReadOutlined />, label: '托福英语学习' }],
+  },
   { key: 'settings', icon: <SettingOutlined />, label: '设置' },
 ]
 
@@ -113,6 +133,7 @@ export function AppLayout({
           theme="dark"
           mode="inline"
           selectedKeys={[active]}
+          defaultOpenKeys={['extensions']}
           items={MENU_ITEMS}
           onClick={({ key }) => onNavigate(key as PageKey)}
         />

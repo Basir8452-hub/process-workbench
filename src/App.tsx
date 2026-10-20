@@ -5,12 +5,14 @@ import { useNewsScheduler } from './hooks/useNewsScheduler'
 import { useAppStore } from './store/AppStore'
 import { DashboardPage } from './pages/Dashboard'
 import { DocumentsPage } from './pages/Documents'
+import { ExtensionsPage } from './pages/Extensions'
 import { IssuesPage } from './pages/Issues'
 import { KnowledgePage } from './pages/Knowledge'
 import { NewsPage } from './pages/News'
 import { ReportPage } from './pages/Report'
 import { SettingsPage } from './pages/Settings'
 import { TasksPage } from './pages/Tasks'
+import { ToeflPage } from './pages/Toefl'
 
 export function App() {
   const { loading } = useAppStore()
@@ -54,6 +56,8 @@ export function App() {
       {active === 'documents' ? <DocumentsPage createSignal={signalFor('documents')} /> : null}
       {active === 'report' ? <ReportPage /> : null}
       {active === 'knowledge' ? <KnowledgePage createSignal={signalFor('knowledge')} /> : null}
+      {active === 'extensions' ? <ExtensionsPage onNavigate={navigate} /> : null}
+      {active === 'toefl' ? <ToeflPage onNavigate={navigate} /> : null}
       {active === 'settings' ? <SettingsPage /> : null}
     </AppLayout>
   )

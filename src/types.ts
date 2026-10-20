@@ -168,6 +168,33 @@ export interface NewsDigest {
   updatedAt: string
 }
 
+export type ToeflQuestionType = 'vocab' | 'grammar' | 'sentence' | 'reading'
+
+export interface ToeflQuestion {
+  id: ID
+  type: ToeflQuestionType
+  /** 阅读题短文，其他题型为空 */
+  passage?: string
+  prompt: string
+  options: string[]
+  answerIndex: number
+  explanation: string
+}
+
+export interface ToeflQuestionAnswer {
+  questionId: ID
+  selectedIndex: number | null
+  correct: boolean | null
+}
+
+export interface ToeflDailyRecord {
+  id: ID
+  date: string
+  answers: ToeflQuestionAnswer[]
+  startedAt: string
+  updatedAt: string
+}
+
 export interface StoreData {
   version: number
   tasks: Task[]
@@ -178,6 +205,7 @@ export interface StoreData {
   reports: WeeklyReport[]
   newsArticles: NewsArticle[]
   newsDigests: NewsDigest[]
+  toeflRecords: ToeflDailyRecord[]
   settings: AppSettings
 }
 

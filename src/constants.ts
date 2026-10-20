@@ -137,6 +137,7 @@ export function createEmptyStore(): StoreData {
     reports: [],
     newsArticles: [],
     newsDigests: [],
+    toeflRecords: [],
     settings: {
       expiryWarningDays: 30,
     },
