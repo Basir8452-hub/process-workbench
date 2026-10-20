@@ -1,0 +1,178 @@
+{
+  "version": 1,
+  "tasks": [
+    {
+      "id": "task_sample_001",
+      "title": "跟催焊接虚焊问题的永久措施",
+      "priority": "high",
+      "dueDate": "2026-10-22",
+      "done": false,
+      "linkedType": "issue",
+      "linkedId": "issue_sample_001",
+      "notes": "示例数据，可在应用内删除",
+      "createdAt": "2026-10-20T01:00:00.000Z"
+    },
+    {
+      "id": "task_sample_002",
+      "title": "完成焊接 SOP 复审",
+      "priority": "medium",
+      "dueDate": "2026-10-25",
+      "done": true,
+      "linkedType": "document",
+      "linkedId": "doc_sample_001",
+      "createdAt": "2026-10-18T02:00:00.000Z",
+      "completedAt": "2026-10-19T08:30:00.000Z"
+    }
+  ],
+  "issues": [
+    {
+      "id": "issue_sample_001",
+      "code": "Q-20261020-001",
+      "title": "示例：焊接工序虚焊不良",
+      "product": "XX-1000",
+      "line": "SMT-01",
+      "process": "焊接",
+      "severity": "batch",
+      "status": "analyzing",
+      "owner": "示例用户",
+      "department": "工艺部",
+      "foundDate": "2026-10-20",
+      "dueDate": "2026-10-27",
+      "description": "示例数据：批量虚焊，已隔离在制品。",
+      "containment": "隔离在制品，增加全检。",
+      "rootCause": "待补充 5Why。",
+      "permanentAction": "待验证。",
+      "verification": "",
+      "isRepeat": false,
+      "createdAt": "2026-10-20T01:10:00.000Z",
+      "updatedAt": "2026-10-20T03:20:00.000Z"
+    },
+    {
+      "id": "issue_sample_002",
+      "code": "Q-20261015-001",
+      "title": "示例：点胶位置偏移",
+      "product": "XX-1000",
+      "line": "SMT-01",
+      "process": "点胶",
+      "severity": "normal",
+      "status": "closed",
+      "owner": "示例用户",
+      "department": "工艺部",
+      "foundDate": "2026-10-15",
+      "dueDate": "2026-10-20",
+      "closedDate": "2026-10-19",
+      "description": "示例数据：点胶位置偏移。",
+      "containment": "调整工装定位。",
+      "rootCause": "工装定位销磨损。",
+      "permanentAction": "更换定位销并增加点检。",
+      "verification": "连续 3 批验证通过。",
+      "isRepeat": false,
+      "createdAt": "2026-10-15T02:00:00.000Z",
+      "updatedAt": "2026-10-19T09:00:00.000Z"
+    }
+  ],
+  "issueLogs": [
+    {
+      "id": "log_sample_001",
+      "issueId": "issue_sample_001",
+      "date": "2026-10-20",
+      "action": "问题创建",
+      "owner": "示例用户",
+      "note": "示例跟催记录",
+      "createdAt": "2026-10-20T01:10:00.000Z"
+    },
+    {
+      "id": "log_sample_002",
+      "issueId": "issue_sample_001",
+      "date": "2026-10-20",
+      "action": "跟催责任部门",
+      "owner": "示例用户",
+      "note": "等待根因分析结果",
+      "createdAt": "2026-10-20T03:20:00.000Z"
+    }
+  ],
+  "documents": [
+    {
+      "id": "doc_sample_001",
+      "code": "SOP-焊接-001",
+      "name": "示例：焊接作业指导书",
+      "type": "SOP",
+      "version": "A",
+      "process": "焊接",
+      "line": "SMT-01",
+      "status": "controlled",
+      "effectiveDate": "2026-01-01",
+      "reviewDate": "2027-01-01",
+      "filePath": "\\\\share\\process\\SOP-焊接-001.pdf",
+      "notes": "示例数据",
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-10-01T00:00:00.000Z"
+    }
+  ],
+  "knowledge": [
+    {
+      "id": "knowledge_sample_001",
+      "title": "示例：焊接虚焊排查思路",
+      "type": "case",
+      "tags": ["焊接", "虚焊", "参数"],
+      "content": "先检查焊接参数，再检查工装定位，最后确认来料可焊性。",
+      "sourceIssueId": "issue_sample_001",
+      "createdAt": "2026-10-20T04:00:00.000Z",
+      "updatedAt": "2026-10-20T04:00:00.000Z"
+    }
+  ],
+  "reports": [
+    {
+      "id": "report_sample_001",
+      "startDate": "2026-10-13",
+      "endDate": "2026-10-19",
+      "highlights": "示例周报：完成点胶偏移问题关闭，推进焊接虚焊分析。",
+      "nextPlan": "完成焊接参数验证，更新 SOP。",
+      "createdAt": "2026-10-19T10:00:00.000Z",
+      "updatedAt": "2026-10-19T10:00:00.000Z"
+    }
+  ],
+  "newsArticles": [
+    {
+      "id": "news_article_sample_001",
+      "title": "示例：储能行业资讯",
+      "summary": "这是一条用于演示的资讯摘要，实际内容由 RSS 抓取生成。",
+      "link": "https://example.com/energy-storage-news",
+      "source": "示例来源",
+      "publishedAt": "2026-10-19T02:00:00.000Z",
+      "fetchedAt": "2026-10-20T01:00:00.000Z",
+      "digestDate": "2026-10-19"
+    }
+  ],
+  "newsDigests": [
+    {
+      "id": "news_digest_sample_001",
+      "date": "2026-10-19",
+      "title": "储能行业日报 · 2026-10-19",
+      "summary": "示例日报：昨日储能行业动态平稳，示例内容仅用于演示数据结构。",
+      "highlights": ["示例重点一", "示例重点二"],
+      "articleIds": ["news_article_sample_001"],
+      "status": "fallback",
+      "error": "示例数据，未配置 AI 模型",
+      "createdAt": "2026-10-20T01:00:00.000Z",
+      "updatedAt": "2026-10-20T01:00:00.000Z"
+    }
+  ],
+  "settings": {
+    "ownerName": "示例用户",
+    "department": "工艺开发部 · 工艺开发工程师",
+    "expiryWarningDays": 30,
+    "aiBaseUrl": "",
+    "aiModel": "",
+    "aiSystemPrompt": "",
+    "newsEnabled": true,
+    "newsPushTime": "09:00",
+    "newsFeeds": [
+      "https://www.bing.com/news/search?q=%E5%82%A8%E8%83%BD&format=rss&setlang=zh-cn",
+      "https://www.bing.com/news/search?q=%E5%82%A8%E8%83%BD%20%E6%94%BF%E7%AD%96&format=rss&setlang=zh-cn",
+      "https://www.bing.com/news/search?q=%E5%82%A8%E8%83%BD%20%E9%A1%B9%E7%9B%AE&format=rss&setlang=zh-cn"
+    ],
+    "newsMaxArticles": 8,
+    "newsRetentionDays": 90
+  }
+}

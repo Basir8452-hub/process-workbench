@@ -6,6 +6,7 @@ dist/
 release/
 release-*/
 *.blockmap
+*.tsbuildinfo
 
 # Logs
 *.log
