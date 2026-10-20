@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, Notification } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, shell, Notification, safeStorage } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs')
 const fsp = fs.promises
@@ -218,9 +218,37 @@ function buildChatEndpoint(baseUrl) {
   return `${trimmed}/chat/completions`
 }
 
+/** 用系统凭据库（safeStorage）加密 API Key，返回 base64 密文；不可用时返回 null */
+function encryptSecret(plain) {
+  const value = String(plain || '')
+  if (!value) return null
+  try {
+    if (!safeStorage.isEncryptionAvailable()) return null
+    return safeStorage.encryptString(value).toString('base64')
+  } catch (_) {
+    return null
+  }
+}
+
+/** 解密 safeStorage 密文；不可用时返回 null */
+function decryptSecret(encoded) {
+  if (!encoded) return null
+  try {
+    if (!safeStorage.isEncryptionAvailable()) return null
+    return safeStorage.decryptString(Buffer.from(String(encoded), 'base64'))
+  } catch (_) {
+    return null
+  }
+}
+
+ipcMain.handle('ai:encrypt-key', async (_event, plain) => encryptSecret(plain))
+
+ipcMain.handle('ai:decrypt-key', async (_event, encoded) => decryptSecret(encoded))
+
 ipcMain.handle('ai:chat', async (_event, request) => {
   let baseUrl = String(request?.baseUrl || '').trim()
-  const apiKey = String(request?.apiKey || '').trim()
+  // apiKey 优先按 safeStorage 密文解密；解不开（留空/旧明文/本地模型）则原样使用
+  const apiKey = decryptSecret(request?.apiKey) ?? String(request?.apiKey || '').trim()
   const model = String(request?.model || '').trim()
   const messages = Array.isArray(request?.messages) ? request.messages : []
 

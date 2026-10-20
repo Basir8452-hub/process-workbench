@@ -52,3 +52,15 @@ export async function chatWithAI(request: AiChatRequest): Promise<AiChatResult> 
     return { ok: false, error: message }
   }
 }
+
+/** 用系统凭据库加密 API Key；返回密文（base64），不可用时返回 null */
+export async function encryptAiKey(plain: string): Promise<string | null> {
+  if (!window.workbench?.aiEncryptKey) return null
+  return window.workbench.aiEncryptKey(plain)
+}
+
+/** 解密 API Key 密文；返回明文，不可用时返回 null */
+export async function decryptAiKey(encoded: string): Promise<string | null> {
+  if (!window.workbench?.aiDecryptKey) return null
+  return window.workbench.aiDecryptKey(encoded)
+}

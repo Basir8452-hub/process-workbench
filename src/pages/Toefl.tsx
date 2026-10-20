@@ -23,11 +23,15 @@ import {
   Tag,
 } from 'antd'
 import { useMemo, useState } from 'react'
+import type { EChartsOption } from 'echarts'
+import { Chart } from '../components/Chart'
 import type { PageKey } from '../components/AppLayout'
 import { TOEFL_QUESTION_TYPES } from '../data/toeflQuestions'
 import {
   applyToeflRecord,
   buildRecord,
+  buildToeflTrend,
+  collectMistakes,
   countRecord,
   getRecord,
   pickDailyQuestions,
@@ -57,6 +61,69 @@ export function ToeflPage({ onNavigate }: { onNavigate: (key: PageKey) => void }
   )
   const stats = useMemo(() => summarizeToefl(records), [records])
   const todayStats = countRecord(todayRecord)
+  const mistakes = useMemo(() => collectMistakes(records), [records])
+  const trend = useMemo(() => buildToeflTrend(records), [records])
+
+  const trendOption = useMemo<EChartsOption>(() => {
+    const dates = trend.map((point) => point.date.slice(5))
+    return {
+      grid: { left: 34, right: 16, top: 24, bottom: 24 },
+      tooltip: {
+        trigger: 'axis',
+        formatter(params: unknown) {
+          const list = Array.isArray(params) ? params : [params]
+          const first = list[0] as { axisValue?: string; data?: { rate?: number; answered?: number; correct?: number } } | undefined
+          const point = first?.data
+          if (!first || !point) return ''
+          return `${first.axisValue ?? ''}<br/>正确率 <b>${point.rate ?? 0}%</b><br/>答题 ${point.answered ?? 0} · 答对 ${point.correct ?? 0}`
+        },
+      },
+      xAxis: {
+        type: 'category',
+        data: dates,
+        axisLabel: { color: '#94a3b8', fontSize: 11 },
+        axisLine: { lineStyle: { color: '#e2e8f0' } },
+        axisTick: { show: false },
+      },
+      yAxis: {
+        type: 'value',
+        min: 0,
+        max: 100,
+        axisLabel: { color: '#94a3b8', fontSize: 11, formatter: '{value}%' },
+        splitLine: { lineStyle: { color: '#f1f5f9' } },
+      },
+      series: [
+        {
+          name: '正确率',
+          type: 'line',
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 7,
+          data: trend.map((point) => ({
+            value: point.rate,
+            rate: point.rate,
+            answered: point.answered,
+            correct: point.correct,
+          })),
+          lineStyle: { color: '#2563eb', width: 2.5 },
+          itemStyle: { color: '#2563eb' },
+          areaStyle: {
+            color: {
+              type: 'linear',
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [
+                { offset: 0, color: 'rgba(37, 99, 235, 0.22)' },
+                { offset: 1, color: 'rgba(37, 99, 235, 0.02)' },
+              ],
+            },
+          },
+        },
+      ],
+    }
+  }, [trend])
 
   const viewDate = selectedDate ?? today
   const viewRecord = getRecord(data.toeflRecords, viewDate) ?? buildRecord(viewDate, questions)
@@ -322,6 +389,97 @@ export function ToeflPage({ onNavigate }: { onNavigate: (key: PageKey) => void }
       </Row>
 
       <Row gutter={16}>
+        <Col span={10}>
+          <Card
+            variant="borderless"
+            className="panel-card toefl-mistake-card"
+            title={
+              <span className="card-title">
+                <CloseCircleFilled style={{ color: '#dc2626' }} /> 错题本
+              </span>
+            }
+            extra={<span className="text-muted">{mistakes.length} 道易错题</span>}
+          >
+            {mistakes.length === 0 ? (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="太棒了，暂时没有错题"
+              />
+            ) : (
+              <div className="toefl-mistake-list">
+                {mistakes.map((mistake) => {
+                  const question = mistake.question
+                  const wrongOption = question.options[mistake.lastSelectedIndex]
+                  return (
+                    <div className="toefl-mistake-item" key={mistake.questionId}>
+                      <div className="toefl-mistake-head">
+                        <Tag
+                          color={TOEFL_QUESTION_TYPES[question.type].color}
+                          style={{ marginInlineEnd: 0 }}
+                        >
+                          {TOEFL_QUESTION_TYPES[question.type].label}
+                        </Tag>
+                        <span className="toefl-mistake-count">
+                          错 {mistake.wrongCount} 次 · {formatDate(mistake.lastDate)}
+                        </span>
+                      </div>
+                      <div className="toefl-mistake-prompt">
+                        {question.passage ? (
+                          <div className="toefl-passage toefl-mistake-passage">
+                            {question.passage}
+                          </div>
+                        ) : null}
+                        {question.prompt}
+                      </div>
+                      <div className="toefl-mistake-answer">
+                        <span className="toefl-mistake-answer-label">正确答案</span>
+                        {String.fromCharCode(65 + question.answerIndex)}.{' '}
+                        {question.options[question.answerIndex]}
+                      </div>
+                      {wrongOption !== undefined && wrongOption !== question.options[question.answerIndex] ? (
+                        <div className="toefl-mistake-answer wrong">
+                          <span className="toefl-mistake-answer-label">你选过</span>
+                          {String.fromCharCode(65 + mistake.lastSelectedIndex)}. {wrongOption}
+                        </div>
+                      ) : null}
+                      <div className="toefl-mistake-explain">{question.explanation}</div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </Card>
+        </Col>
+        <Col span={14}>
+          <Card
+            variant="borderless"
+            className="panel-card toefl-trend-card"
+            title={
+              <span className="card-title">
+                <TrophyOutlined style={{ color: '#d97706' }} /> 正确率趋势
+              </span>
+            }
+            extra={
+              trend.length > 0 ? (
+                <span className="text-muted">
+                  最近 {trend[trend.length - 1].rate}% · 共 {trend.length} 天
+                </span>
+              ) : null
+            }
+          >
+            {trend.length === 0 ? (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="完成答题后这里会展示每日正确率曲线"
+              />
+            ) : (
+              <Chart option={trendOption} height={300} />
+            )}
+          </Card>
+        </Col>
+      </Row>
+
+      <Row gutter={16}>
         <Col span={24}>
           <Card
             variant="borderless"
@@ -337,6 +495,8 @@ export function ToeflPage({ onNavigate }: { onNavigate: (key: PageKey) => void }
                 ['01', '每日 10 题', '每天按日期自动生成 10 道托福样题，覆盖词汇、语法、句子填空与短阅读。'],
                 ['02', '逐题作答', '选择答案后立即反馈对错，并展示本题解析，做完一题看一题。'],
                 ['03', '回顾与坚持', '历史记录保留每日答题情况，可随时回看错题和解析。'],
+                ['04', '错题巩固', '答错的题自动进错题本，按错误次数排序，集中复习薄弱点。'],
+                ['05', '趋势复盘', '正确率趋势图记录每天的表现，帮助观察进步曲线。'],
               ].map(([step, title, description]) => (
                 <div className="toefl-help-step" key={step}>
                   <div className="toefl-help-index">{step}</div>

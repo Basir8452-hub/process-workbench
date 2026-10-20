@@ -251,6 +251,8 @@ export interface WorkbenchApi {
   getAppInfo: () => Promise<AppInfo>
   openDataFolder: (kind: 'data' | 'backup') => Promise<SaveResult>
   aiChat: (request: AiChatRequest) => Promise<AiChatResult>
+  aiEncryptKey: (plain: string) => Promise<string | null>
+  aiDecryptKey: (encoded: string) => Promise<string | null>
   fetchNewsFeeds: (feedUrls: string[]) => Promise<NewsFetchResult>
   notify: (payload: { title: string; body: string }) => Promise<{ ok: boolean }>
 }

@@ -25,7 +25,7 @@ import {
   Typography,
 } from 'antd'
 import { useEffect, useState } from 'react'
-import { chatWithAI } from '../services/ai'
+import { chatWithAI, decryptAiKey, encryptAiKey } from '../services/ai'
 import {
   backupStore,
   exportStore,
@@ -98,6 +98,21 @@ export function SettingsPage() {
     void getAppInfo().then(setInfo)
   }, [])
 
+  // 进入页面时尝试解密 API Key 回显到表单（不落明文存储）
+  useEffect(() => {
+    const encoded = data.settings.aiApiKey
+    if (!encoded) return
+    let cancelled = false
+    void decryptAiKey(encoded).then((plain) => {
+      if (!cancelled && plain) aiForm.setFieldsValue({ aiApiKey: plain })
+    })
+    return () => {
+      cancelled = true
+    }
+    // 仅在首次进入时回显一次
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const handleSave = async () => {
     const values = await form.validateFields()
     mutate((draft) => ({
@@ -114,17 +129,24 @@ export function SettingsPage() {
 
   const handleSaveAI = async () => {
     const values = await aiForm.validateFields()
+    const plainKey = values.aiApiKey?.trim() ?? ''
+    // 先尝试用系统凭据库加密；加密失败则回退为空（不落明文）
+    const encodedKey = plainKey ? await encryptAiKey(plainKey) : undefined
+    if (plainKey && !encodedKey) {
+      message.error('系统凭据库不可用，无法安全保存 API Key，请改用本地模型或稍后重试')
+      return
+    }
     mutate((draft) => ({
       ...draft,
       settings: {
         ...draft.settings,
         aiBaseUrl: values.aiBaseUrl?.trim(),
-        aiApiKey: values.aiApiKey?.trim(),
+        aiApiKey: encodedKey ?? undefined,
         aiModel: values.aiModel?.trim(),
         aiSystemPrompt: values.aiSystemPrompt?.trim(),
       },
     }))
-    message.success('AI 设置已保存')
+    message.success('AI 设置已保存（API Key 已加密存储）')
   }
 
   const handleTestAI = async () => {
@@ -135,9 +157,11 @@ export function SettingsPage() {
     }
     setTesting(true)
     try {
+      const plainKey = values.aiApiKey?.trim() ?? ''
+      const apiKey = plainKey ? (await encryptAiKey(plainKey)) ?? plainKey : undefined
       const result = await chatWithAI({
         baseUrl: values.aiBaseUrl.trim(),
-        apiKey: values.aiApiKey?.trim(),
+        apiKey,
         model: values.aiModel.trim(),
         messages: [{ role: 'user', content: '请只回复四个字：连接成功' }],
       })
@@ -301,7 +325,7 @@ export function SettingsPage() {
           requiredMark={false}
           initialValues={{
             aiBaseUrl: data.settings.aiBaseUrl,
-            aiApiKey: data.settings.aiApiKey,
+            aiApiKey: undefined,
             aiModel: data.settings.aiModel,
             aiSystemPrompt: data.settings.aiSystemPrompt,
           }}
@@ -369,8 +393,8 @@ export function SettingsPage() {
             </Button>
           </Space>
           <div className="settings-note">
-            API Key 只保存在本机数据文件中，只会发送给你填写的接口地址。没有 API Key
-            的本地模型（如 Ollama）可以留空。
+            API Key 使用操作系统凭据库（Windows 凭据管理器）加密保存，数据文件中不再出现明文；
+            只会发送给你填写的接口地址。没有 API Key 的本地模型（如 Ollama）可以留空。
           </div>
         </Form>
       </Card>

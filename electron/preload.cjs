@@ -11,6 +11,8 @@ contextBridge.exposeInMainWorld('workbench', {
   getAppInfo: () => ipcRenderer.invoke('app:info'),
   openDataFolder: (kind) => ipcRenderer.invoke('app:open-folder', kind),
   aiChat: (request) => ipcRenderer.invoke('ai:chat', request),
+  aiEncryptKey: (plain) => ipcRenderer.invoke('ai:encrypt-key', plain),
+  aiDecryptKey: (encoded) => ipcRenderer.invoke('ai:decrypt-key', encoded),
   fetchNewsFeeds: (feedUrls) => ipcRenderer.invoke('news:fetch', feedUrls),
   notify: (payload) => ipcRenderer.invoke('app:notify', payload),
 })

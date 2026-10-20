@@ -1,18 +1,35 @@
+import { lazy, Suspense, useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import { Spin } from 'antd'
-import { useEffect, useState } from 'react'
 import { AppLayout, type PageKey } from './components/AppLayout'
 import { useNewsScheduler } from './hooks/useNewsScheduler'
 import { useAppStore } from './store/AppStore'
 import { DashboardPage } from './pages/Dashboard'
-import { DocumentsPage } from './pages/Documents'
-import { ExtensionsPage } from './pages/Extensions'
-import { IssuesPage } from './pages/Issues'
-import { KnowledgePage } from './pages/Knowledge'
-import { NewsPage } from './pages/News'
-import { ReportPage } from './pages/Report'
-import { SettingsPage } from './pages/Settings'
-import { TasksPage } from './pages/Tasks'
-import { ToeflPage } from './pages/Toefl'
+
+// 路由级拆包：非首屏页面按需加载，减少首屏体积
+const DocumentsPage = lazy(() => import('./pages/Documents').then((m) => ({ default: m.DocumentsPage })))
+const ExtensionsPage = lazy(() => import('./pages/Extensions').then((m) => ({ default: m.ExtensionsPage })))
+const IssuesPage = lazy(() => import('./pages/Issues').then((m) => ({ default: m.IssuesPage })))
+const KnowledgePage = lazy(() => import('./pages/Knowledge').then((m) => ({ default: m.KnowledgePage })))
+const NewsPage = lazy(() => import('./pages/News').then((m) => ({ default: m.NewsPage })))
+const ReportPage = lazy(() => import('./pages/Report').then((m) => ({ default: m.ReportPage })))
+const SettingsPage = lazy(() => import('./pages/Settings').then((m) => ({ default: m.SettingsPage })))
+const TasksPage = lazy(() => import('./pages/Tasks').then((m) => ({ default: m.TasksPage })))
+const ToeflPage = lazy(() => import('./pages/Toefl').then((m) => ({ default: m.ToeflPage })))
+
+function PageSuspense({ children }: { children: ReactNode }) {
+  return (
+    <Suspense
+      fallback={
+        <div className="app-loading" style={{ minHeight: 240 }}>
+          <Spin size="large" />
+        </div>
+      }
+    >
+      {children}
+    </Suspense>
+  )
+}
 
 export function App() {
   const { loading } = useAppStore()
@@ -50,15 +67,51 @@ export function App() {
   return (
     <AppLayout active={active} onNavigate={navigate}>
       {active === 'dashboard' ? <DashboardPage onNavigate={navigate} /> : null}
-      {active === 'news' ? <NewsPage onNavigate={navigate} /> : null}
-      {active === 'tasks' ? <TasksPage createSignal={signalFor('tasks')} /> : null}
-      {active === 'issues' ? <IssuesPage createSignal={signalFor('issues')} /> : null}
-      {active === 'documents' ? <DocumentsPage createSignal={signalFor('documents')} /> : null}
-      {active === 'report' ? <ReportPage /> : null}
-      {active === 'knowledge' ? <KnowledgePage createSignal={signalFor('knowledge')} /> : null}
-      {active === 'extensions' ? <ExtensionsPage onNavigate={navigate} /> : null}
-      {active === 'toefl' ? <ToeflPage onNavigate={navigate} /> : null}
-      {active === 'settings' ? <SettingsPage /> : null}
+      {active === 'news' ? (
+        <PageSuspense>
+          <NewsPage onNavigate={navigate} />
+        </PageSuspense>
+      ) : null}
+      {active === 'tasks' ? (
+        <PageSuspense>
+          <TasksPage createSignal={signalFor('tasks')} />
+        </PageSuspense>
+      ) : null}
+      {active === 'issues' ? (
+        <PageSuspense>
+          <IssuesPage createSignal={signalFor('issues')} />
+        </PageSuspense>
+      ) : null}
+      {active === 'documents' ? (
+        <PageSuspense>
+          <DocumentsPage createSignal={signalFor('documents')} />
+        </PageSuspense>
+      ) : null}
+      {active === 'report' ? (
+        <PageSuspense>
+          <ReportPage />
+        </PageSuspense>
+      ) : null}
+      {active === 'knowledge' ? (
+        <PageSuspense>
+          <KnowledgePage createSignal={signalFor('knowledge')} />
+        </PageSuspense>
+      ) : null}
+      {active === 'extensions' ? (
+        <PageSuspense>
+          <ExtensionsPage onNavigate={navigate} />
+        </PageSuspense>
+      ) : null}
+      {active === 'toefl' ? (
+        <PageSuspense>
+          <ToeflPage onNavigate={navigate} />
+        </PageSuspense>
+      ) : null}
+      {active === 'settings' ? (
+        <PageSuspense>
+          <SettingsPage />
+        </PageSuspense>
+      ) : null}
     </AppLayout>
   )
 }

@@ -146,3 +146,71 @@ export const TOEFL_TYPE_LABELS: Record<ToeflQuestion['type'], string> = {
   sentence: '句子填空',
   reading: '短阅读',
 }
+
+export interface ToeflMistake {
+  questionId: string
+  question: ToeflQuestion
+  wrongCount: number
+  lastDate: string
+  lastSelectedIndex: number
+}
+
+/** 聚合错题：跨日去重统计，按错误次数降序、最近出错日期次之 */
+export function collectMistakes(records: ToeflDailyRecord[]): ToeflMistake[] {
+  const map = new Map<string, { count: number; lastDate: string; lastSelectedIndex: number }>()
+  const questionsById = new Map(TOEFL_QUESTIONS.map((question) => [question.id, question]))
+  for (const record of records) {
+    for (const answer of record.answers) {
+      if (answer.correct === false && answer.selectedIndex !== null) {
+        const entry =
+          map.get(answer.questionId) ?? {
+            count: 0,
+            lastDate: '',
+            lastSelectedIndex: answer.selectedIndex,
+          }
+        entry.count += 1
+        if (record.date > entry.lastDate) {
+          entry.lastDate = record.date
+          entry.lastSelectedIndex = answer.selectedIndex
+        }
+        map.set(answer.questionId, entry)
+      }
+    }
+  }
+  return [...map.entries()]
+    .map(([questionId, info]) => ({
+      questionId,
+      question: questionsById.get(questionId) as ToeflQuestion | undefined,
+      wrongCount: info.count,
+      lastDate: info.lastDate,
+      lastSelectedIndex: info.lastSelectedIndex,
+    }))
+    .filter((item): item is ToeflMistake => Boolean(item.question))
+    .sort(
+      (a, b) =>
+        b.wrongCount - a.wrongCount || b.lastDate.localeCompare(a.lastDate),
+    )
+}
+
+export interface ToeflTrendPoint {
+  date: string
+  rate: number
+  answered: number
+  correct: number
+}
+
+/** 每日正确率趋势：仅含有答题的天，按日期升序 */
+export function buildToeflTrend(records: ToeflDailyRecord[]): ToeflTrendPoint[] {
+  return [...records]
+    .map((record) => {
+      const stat = countRecord(record)
+      return {
+        date: record.date,
+        rate: stat.answered > 0 ? Math.round((stat.correct / stat.answered) * 100) : 0,
+        answered: stat.answered,
+        correct: stat.correct,
+      }
+    })
+    .filter((point) => point.answered > 0)
+    .sort((a, b) => a.date.localeCompare(b.date))
+}

@@ -13,7 +13,7 @@ import type {
 const LOCAL_KEY = 'process-workbench:data'
 const LOCAL_BACKUP_PREFIX = 'process-workbench:backup:'
 
-function normalizeStore(input: Partial<StoreData> | null | undefined): StoreData {
+export function normalizeStore(input: Partial<StoreData> | null | undefined): StoreData {
   const empty = createEmptyStore()
   if (!input || typeof input !== 'object') return empty
   return {
