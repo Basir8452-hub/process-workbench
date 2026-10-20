@@ -1,41 +1,41 @@
 @echo off
-REM ============================================================
-REM  工艺工作台 一键推送 GitHub（v0.5.0）
-REM  双击本文件即可：推送代码到 main + 推送 v0.5.0 标签，
-REM  推送成功后 GitHub 会自动打包 exe 并发布到 Releases。
-REM ============================================================
-chcp 65001 >nul
+REM ============================================
+REM  Process Workbench - One-click push to GitHub
+REM  Double-click this file. It pushes code to the
+REM  main branch and pushes tag v0.5.0. Then
+REM  GitHub Actions will build the exe and publish
+REM  it to Releases automatically.
+REM ============================================
 cd /d "%~dp0"
 
 echo ============================================
-echo  开始推送代码和版本标签到 GitHub...
+echo  Pushing code and version tag to GitHub...
 echo ============================================
 echo.
 
-echo [1/2] 推送代码到 main 分支...
+echo [1/2] Pushing code to main branch...
 git push origin main
 if errorlevel 1 (
     echo.
-    echo [失败] 推送代码失败，请截图本窗口内容发给我。
-    echo 常见原因：Git 未安装 / 未登录 / 网络问题。
+    echo [FAILED] Push code failed. Take a screenshot of this window and send it to me.
     goto :end
 )
 
 echo.
-echo [2/2] 推送版本标签 v0.5.0...
+echo [2/2] Pushing version tag v0.5.0...
 git push origin v0.5.0
 if errorlevel 1 (
     echo.
-    echo [失败] 推送标签失败，请截图本窗口内容发给我。
+    echo [FAILED] Push tag failed. Take a screenshot of this window and send it to me.
     goto :end
 )
 
 echo.
 echo ============================================
-echo  全部推送成功！
-echo  打开下面地址即可看到自动打包进度：
+echo  All pushed successfully!
+echo  Check build progress at:
 echo  https://github.com/Basir8452-hub/process-workbench/actions
-echo  打包完成后，Releases 页面即可下载 exe：
+echo  Download the exe from Releases when done:
 echo  https://github.com/Basir8452-hub/process-workbench/releases
 echo ============================================
 
