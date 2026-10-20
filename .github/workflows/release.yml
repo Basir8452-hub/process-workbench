@@ -1,0 +1,44 @@
+name: Build & Release
+
+# 触发条件：推送 v* 标签（如 v0.4.0）时自动打包并发布到 GitHub Releases
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch: # 也支持手动触发
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies (with China mirror)
+        shell: bash
+        run: npm ci --registry=https://registry.npmmirror.com --electron_mirror=https://npmmirror.com/mirrors/electron/
+
+      - name: Build renderer
+        run: npm run build
+
+      - name: Package Windows exe (NSIS + portable)
+        run: |
+          npm run package
+          npm run package:portable
+
+      - name: Publish to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            release-v7/*.exe
+          generate_release_notes: true
