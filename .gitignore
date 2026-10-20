@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+release/
+release-*/
+*.blockmap
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local environment / secrets
+.env
+.env.*
+!.env.example
+workbench-data.json
+backups/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.trae/
+
+# Local caches
+.cache/
+.eslintcache
