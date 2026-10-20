@@ -28,7 +28,7 @@ npm run package      # Windows NSIS 安装包
 
 当前打包输出目录在 `package.json` 的 `build.directories.output`，当前是 `release-v7/`。修改版本号时同步修改输出目录，避免旧安装包混淆。
 
-图标文件是脚本生成的，不在源码仓库中。如果 `build/icon.ico`、`build/icon.png` 或 `public/icon.png` 不存在，先运行：
+图标文件已包含在仓库中：`build/icon.ico`、`build/icon.png`、`build/icon-512.png`、`public/icon.png`。如需重新生成（例如替换图标或图标损坏），运行：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/generate-icon.ps1

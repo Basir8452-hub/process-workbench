@@ -20,6 +20,14 @@
 | 个人知识库 | 案例/标准/模板/经验、标签、关联问题、Excel 批量导入导出 |
 | 设置 | 个人信息、文件提醒天数、AI 模型、数据备份/恢复、数据目录 |
 
+## 交接方式
+
+其他 AI Agent 直接克隆本仓库即可，源码、文档和图标都在仓库根目录，不需要下载或解压 zip。
+
+```bash
+git clone https://github.com/Basir8452-hub/process-workbench.git
+```
+
 ## 快速开始
 
 ### 环境要求
@@ -85,19 +93,19 @@ release-v7/win-unpacked/工艺工作台.exe
 
 ### 图标资源
 
-仓库不包含二进制图标文件。首次克隆后，如果 `build/icon.ico`、`build/icon.png` 或 `public/icon.png` 不存在，请运行：
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/generate-icon.ps1
-```
-
-脚本会生成：
+仓库已包含以下图标文件：
 
 ```text
 build/icon.ico
 build/icon.png
 build/icon-512.png
 public/icon.png
+```
+
+如果需要重新生成（例如替换图标或图标损坏），运行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/generate-icon.ps1
 ```
 
 ## 数据与备份
