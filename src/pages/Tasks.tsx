@@ -35,7 +35,7 @@ import { PriorityTag } from '../components/Tags'
 import { PRIORITY_OPTIONS } from '../constants'
 import { useAppStore } from '../store/AppStore'
 import type { Task } from '../types'
-import { dueLabel, formatDate, isDueToday, isOverdue } from '../utils/date'
+import { dueLabel, formatDate, isDueSoon, isDueToday, isOverdue } from '../utils/date'
 import { uid } from '../utils/id'
 
 interface TaskFormValues {
@@ -166,6 +166,7 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
         }
         if (priorityFilter !== 'all' && task.priority !== priorityFilter) return false
         if (statusFilter === 'open') return !task.done
+        if (statusFilter === 'soon') return !task.done && isDueSoon(task.dueDate, 3)
         if (statusFilter === 'done') return task.done
         if (statusFilter === 'overdue') return !task.done && isOverdue(task.dueDate)
         return true
@@ -181,6 +182,7 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
 
   const openCount = data.tasks.filter((task) => !task.done).length
   const todayCount = data.tasks.filter((task) => !task.done && isDueToday(task.dueDate)).length
+  const soonCount = data.tasks.filter((task) => !task.done && isDueSoon(task.dueDate, 3)).length
   const overdueCount = data.tasks.filter((task) => !task.done && isOverdue(task.dueDate)).length
   const doneCount = data.tasks.filter((task) => task.done).length
 
@@ -283,11 +285,12 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
         <Col xs={12} md={6}>
           <Card variant="borderless" className="stat-card">
             <Statistic
-              title="今天到期"
-              value={todayCount}
+              title="3天内到期"
+              value={soonCount}
               prefix={<ClockCircleOutlined style={{ color: '#d97706' }} />}
               suffix="项"
             />
+            <div className="stat-foot">含今天，不含已逾期</div>
           </Card>
         </Col>
         <Col xs={12} md={6}>
@@ -330,6 +333,7 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
               options={[
                 { label: '全部', value: 'all' },
                 { label: '未完成', value: 'open' },
+                { label: '3天内', value: 'soon' },
                 { label: '已逾期', value: 'overdue' },
                 { label: '已完成', value: 'done' },
               ]}

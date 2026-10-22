@@ -1,6 +1,6 @@
 {
   "name": "process-workbench",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "private": true,
   "description": "工艺开发工程师个人工作台",
   "author": "Process Workbench",
@@ -45,6 +45,7 @@
       "createDesktopShortcut": true,
       "shortcutName": "工艺工作台"
     },
+    "compression": "maximum",
     "publish": [
       {
         "provider": "generic",

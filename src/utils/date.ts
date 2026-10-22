@@ -39,6 +39,11 @@ export function isDueToday(value?: string): boolean {
   return daysUntil(value) === 0
 }
 
+export function isDueSoon(value?: string, days = 3): boolean {
+  const remaining = daysUntil(value)
+  return remaining !== null && remaining >= 0 && remaining <= days
+}
+
 export function isWithinDays(value: string | undefined, days: number): boolean {
   const remaining = daysUntil(value)
   return remaining !== null && remaining >= 0 && remaining <= days

@@ -337,6 +337,7 @@ export function KnowledgePage({ createSignal }: { createSignal: number }) {
                   <span className="text-muted">{formatDate(item.updatedAt)}</span>
                 </div>
                 <div className="knowledge-title">{item.title}</div>
+                <div className="knowledge-divider" />
                 <div className="knowledge-excerpt">{item.content || '暂无内容'}</div>
                 <div className="knowledge-tags">
                   {item.tags.slice(0, 4).map((tag) => (

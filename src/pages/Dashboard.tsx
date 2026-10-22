@@ -41,6 +41,7 @@ import {
   dueLabel,
   formatDate,
   isDueToday,
+  isDueSoon,
   isOverdue,
   isWithinDays,
   today,
@@ -82,7 +83,7 @@ export function DashboardPage({
       isWithinDays(doc.reviewDate, data.settings.expiryWarningDays ?? 30),
   )
   const todayTasks = data.tasks
-    .filter((task) => !task.done && (isDueToday(task.dueDate) || isOverdue(task.dueDate)))
+    .filter((task) => !task.done && (isDueSoon(task.dueDate, 3) || isOverdue(task.dueDate)))
     .sort((a, b) => {
       const priorityDiff = PRIORITY_WEIGHT[a.priority] - PRIORITY_WEIGHT[b.priority]
       if (priorityDiff !== 0) return priorityDiff
@@ -176,7 +177,7 @@ export function DashboardPage({
           </div>
           <h1 className="hero-title">
             {greeting()}
-            {ownerName ? `，${ownerName}` : ''}，今天有 <span>{todayTasks.length}</span> 项待办需要跟进
+            {ownerName ? `，${ownerName}` : '，欢迎使用'}，今天有 <span>{todayTasks.length}</span> 项待办需要跟进
           </h1>
           <p className="hero-desc">
             {overdueIssues.length > 0
@@ -185,6 +186,7 @@ export function DashboardPage({
             {expiringDocs.length > 0
               ? ` 另有 ${expiringDocs.length} 份工艺文件临近复审。`
               : ' 工艺文件复审状态正常。'}
+            {' '}以下展示 3 天内到期和已逾期的待办。
           </p>
           <div className="hero-actions">
             <Button
@@ -232,12 +234,12 @@ export function DashboardPage({
         <Col xs={12} md={6}>
           <Card className="stat-card" variant="borderless">
             <Statistic
-              title="今日待办"
+              title="3日内待办"
               value={todayTasks.length}
               prefix={<CheckSquareOutlined style={{ color: '#2563eb' }} />}
               suffix="项"
             />
-            <div className="stat-foot">含今天到期和已逾期事项</div>
+            <div className="stat-foot">含 3 天内到期和已逾期事项</div>
           </Card>
         </Col>
         <Col xs={12} md={6}>
@@ -285,7 +287,7 @@ export function DashboardPage({
           <Card
             title={
               <span className="card-title">
-                <ClockCircleOutlined /> 今日待办
+                <ClockCircleOutlined /> 待办提醒（3天内/逾期）
               </span>
             }
             extra={
@@ -299,7 +301,7 @@ export function DashboardPage({
             {todayTasks.length === 0 ? (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="今天没有到期事项，可以去处理长期改善"
+                description="3天内没有到期事项，可以去处理长期改善"
               />
             ) : (
               <List
