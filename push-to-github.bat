@@ -13,6 +13,19 @@ echo  Pushing code and latest version tag to GitHub...
 echo ============================================
 echo.
 
+REM Check this folder is a git repository first
+git rev-parse --git-dir >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] This folder is NOT a git repository.
+    echo The .git folder is missing, so version tags
+    echo cannot be found.
+    echo.
+    echo FIX: Re-download the source zip from Feishu
+    echo and unzip it into a NEW folder, then run
+    echo this script again.
+    goto :end
+)
+
 REM Detect the latest tag automatically (e.g. v0.5.1)
 set LATEST_TAG=
 for /f "delims=" %%t in ('git tag --sort=-version:refname') do if not defined LATEST_TAG set "LATEST_TAG=%%t"
