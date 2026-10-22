@@ -4,11 +4,11 @@
 
 ## 需要同步版本号的位置
 
-| # | 位置 | 内容 | 当前值（v0.5.1） | 怎么改 |
+| # | 位置 | 内容 | 当前值（v0.5.2） | 怎么改 |
 |---|---|---|---|---|
-| 1 | `package.json` | `"version": "0.5.1"` | ✅ 已是最新 | **唯一源头**，先改这里 |
-| 2 | `package-lock.json` | 顶部 `"version"` 两处 | 已同步 0.5.1 | 随 package.json 改（跑 `npm install` 也会自动更新） |
-| 3 | `docs/ROADMAP.md` | 「已完成版本」表新增一行 | 含 0.5.1 | 发版后补记一行 |
+| 1 | `package.json` | `"version": "0.5.2"` | ✅ 已是最新 | **唯一源头**，先改这里 |
+| 2 | `package-lock.json` | 顶部 `"version"` 两处 | 已同步 0.5.2 | 随 package.json 改（跑 `npm install` 也会自动更新） |
+| 3 | `docs/ROADMAP.md` | 「已完成版本」表新增一行 | 含 0.5.2 | 发版后补记一行 |
 | 4 | `README.md` | 当前版本 | 已改为"以 tag 为准" | **无需再改**（不再写死版本号） |
 | 5 | `push-to-github.bat` | 推送标签 | 自动识别最新 tag | **无需再改**（脚本自动 `git tag --sort=-version:refname`） |
 | 6 | `electron/main.cjs` | `app.getVersion()` | 运行时读 package.json | **无需再改**（自动跟随） |
