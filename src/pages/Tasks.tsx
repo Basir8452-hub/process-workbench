@@ -56,7 +56,7 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [priorityFilter, setPriorityFilter] = useState<string>('all')
-  /** 正在播放"完成"动画的待办 id（渐变变绿→右滑消失） */
+  /** 正在播放"完成"动画的待办 id（绿色扫过→对勾弹跳→淡出） */
   const [completingId, setCompletingId] = useState<string | null>(null)
 
   const openCreate = () => {
@@ -160,7 +160,7 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
     message.success('待办已删除')
   }
 
-  /** 点击"完成"按钮：先播放渐变变绿→右滑消失动画，动画结束后真正置为已完成 */
+  /** 点击"完成"按钮：先播放绿色扫过→对勾弹跳→淡出动画，动画结束后真正置为已完成 */
   const completeTask = (task: Task) => {
     if (completingId) return
     setCompletingId(task.id)
@@ -168,7 +168,7 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
       toggleTask(task, true)
       message.success('待办已完成')
       setCompletingId(null)
-    }, 800)
+    }, 900)
   }
 
   const filtered = useMemo(() => {
@@ -234,12 +234,9 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
         <div>
           <div className={task.done ? 'text-done' : 'text-strong'}>{task.title}</div>
           {task.notes ? <div className="table-subtext">{task.notes}</div> : null}
-          {task.progress ? (
-            <div className="task-progress-line">
-              <span className="task-progress-text">{task.progress}</span>
-              {task.progressAt ? (
-                <span className="task-progress-time">{formatDateTime(task.progressAt)}</span>
-              ) : null}
+          {task.id === completingId ? (
+            <div className="task-complete-check" aria-hidden>
+              <CheckCircleOutlined />
             </div>
           ) : null}
         </div>
@@ -283,10 +280,25 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
       },
     },
     {
+      title: '进度反馈',
+      width: 200,
+      render: (_, task) =>
+        task.progress ? (
+          <div className="task-progress-line">
+            <span className="task-progress-text">{task.progress}</span>
+            {task.progressAt ? (
+              <span className="task-progress-time">{formatDateTime(task.progressAt)}</span>
+            ) : null}
+          </div>
+        ) : (
+          <span className="text-muted">-</span>
+        ),
+    },
+    {
       title: '操作',
-      width: 140,
+      width: 160,
       render: (_, task) => (
-        <Space size={4}>
+        <Space size={6}>
           {!task.done ? (
             <Tooltip title="标记完成">
               <Button
