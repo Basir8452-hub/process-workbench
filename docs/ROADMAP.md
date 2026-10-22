@@ -25,7 +25,6 @@
 
 ### 工程与发布
 
-- 已有 vitest 单测（22 例），尚未接入 CI：发布流水线应加 `npm test` 步骤。
 - 安装包未做代码签名，Windows SmartScreen 可能提示。
 - 没有自动更新机制。
 - Ant Design 6 的 `List` 组件存在弃用警告，不影响功能。
@@ -46,6 +45,7 @@
 - 清理旧 `release-*`、`dist`、临时脚本。
 - 增加 `.env.example` 或明确“不需要环境变量”的说明。
 - 安装提速：当前 Electron 等依赖体积大、安装耗时长；可配置镜像源（npmmirror）或提交锁文件后用 `npm ci` 加速。
+- 安装包压缩瘦身：当前 electron-builder 未启用压缩（NSIS 默认不压缩），安装包约 105MB；可加 `"compression": "maximum"`（electron-builder 支持），预计可降至 70MB 左右，并显著加快安装器解压速度。
 
 ### P1：业务模块扩展
 
