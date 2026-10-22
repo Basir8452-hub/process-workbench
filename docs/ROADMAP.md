@@ -1,6 +1,4 @@
-# 路线图与已知问题
 
-> 发版流程与版本号同步清单见 [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md)。
 
 ## 1. 已完成版本
 
