@@ -35,7 +35,7 @@ import { PriorityTag } from '../components/Tags'
 import { PRIORITY_OPTIONS } from '../constants'
 import { useAppStore } from '../store/AppStore'
 import type { Task } from '../types'
-import { dueLabel, formatDate, isDueSoon, isDueToday, isOverdue } from '../utils/date'
+import { dueLabel, formatDate, formatDateTime, isDueSoon, isDueToday, isOverdue } from '../utils/date'
 import { uid } from '../utils/id'
 
 interface TaskFormValues {
@@ -238,9 +238,7 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
             <div className="task-progress-line">
               <span className="task-progress-text">{task.progress}</span>
               {task.progressAt ? (
-                <span className="task-progress-time">
-                  {formatDate(task.progressAt.slice(0, 10))} {task.progressAt.slice(11, 16)}
-                </span>
+                <span className="task-progress-time">{formatDateTime(task.progressAt)}</span>
               ) : null}
             </div>
           ) : null}
