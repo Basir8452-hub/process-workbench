@@ -308,6 +308,7 @@ export function KnowledgePage({ createSignal }: { createSignal: number }) {
                 variant="borderless"
                 className="knowledge-card"
                 onClick={() => setDetailId(item.id)}
+                title={<div className="knowledge-title">{item.title}</div>}
                 extra={
                   <Dropdown
                     trigger={['click']}
@@ -336,7 +337,6 @@ export function KnowledgePage({ createSignal }: { createSignal: number }) {
                   <KnowledgeTypeTag value={item.type} />
                   <span className="text-muted">{formatDate(item.updatedAt)}</span>
                 </div>
-                <div className="knowledge-title">{item.title}</div>
                 <div className="knowledge-divider" />
                 <div className="knowledge-excerpt">{item.content || '暂无内容'}</div>
                 <div className="knowledge-tags">

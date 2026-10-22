@@ -45,6 +45,7 @@ interface TaskFormValues {
   linkedType?: Task['linkedType']
   linkedId?: string
   notes?: string
+  progress?: string
 }
 
 export function TasksPage({ createSignal }: { createSignal: number }) {
@@ -55,6 +56,8 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [priorityFilter, setPriorityFilter] = useState<string>('all')
+  /** 正在播放"完成"动画的待办 id（渐变变绿→右滑消失） */
+  const [completingId, setCompletingId] = useState<string | null>(null)
 
   const openCreate = () => {
     setEditing(null)
@@ -93,6 +96,7 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
       linkedType: task.linkedType,
       linkedId: task.linkedId,
       notes: task.notes,
+      progress: task.progress,
     })
     setModalOpen(true)
   }
@@ -113,6 +117,8 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
                 linkedType: values.linkedType,
                 linkedId: values.linkedId,
                 notes: values.notes?.trim(),
+                progress: values.progress?.trim() || undefined,
+                progressAt: values.progress?.trim() ? now : task.progressAt,
               }
             : task,
         ),
@@ -128,6 +134,8 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
         linkedType: values.linkedType,
         linkedId: values.linkedId,
         notes: values.notes?.trim(),
+        progress: values.progress?.trim() || undefined,
+        progressAt: values.progress?.trim() ? now : undefined,
         createdAt: now,
       }
       mutate((draft) => ({ ...draft, tasks: [task, ...draft.tasks] }))
@@ -150,6 +158,17 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
   const removeTask = (task: Task) => {
     mutate((draft) => ({ ...draft, tasks: draft.tasks.filter((item) => item.id !== task.id) }))
     message.success('待办已删除')
+  }
+
+  /** 点击"完成"按钮：先播放渐变变绿→右滑消失动画，动画结束后真正置为已完成 */
+  const completeTask = (task: Task) => {
+    if (completingId) return
+    setCompletingId(task.id)
+    window.setTimeout(() => {
+      toggleTask(task, true)
+      message.success('待办已完成')
+      setCompletingId(null)
+    }, 700)
   }
 
   const filtered = useMemo(() => {
@@ -215,6 +234,16 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
         <div>
           <div className={task.done ? 'text-done' : 'text-strong'}>{task.title}</div>
           {task.notes ? <div className="table-subtext">{task.notes}</div> : null}
+          {task.progress ? (
+            <div className="task-progress-line">
+              <span className="task-progress-text">{task.progress}</span>
+              {task.progressAt ? (
+                <span className="task-progress-time">
+                  {formatDate(task.progressAt.slice(0, 10))} {task.progressAt.slice(11, 16)}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       ),
     },
@@ -257,9 +286,21 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
     },
     {
       title: '操作',
-      width: 100,
+      width: 140,
       render: (_, task) => (
         <Space size={4}>
+          {!task.done ? (
+            <Tooltip title="标记完成">
+              <Button
+                type="primary"
+                shape="circle"
+                icon={<CheckCircleOutlined />}
+                className="task-complete-btn"
+                aria-label="标记完成"
+                onClick={() => completeTask(task)}
+              />
+            </Tooltip>
+          ) : null}
           <Button type="text" size="small" icon={<EditOutlined />} onClick={() => openEdit(task)} />
           <Popconfirm title="删除这条待办？" onConfirm={() => removeTask(task)}>
             <Button type="text" size="small" danger icon={<DeleteOutlined />} />
@@ -356,6 +397,9 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
           scroll={{ x: 900 }}
           pagination={{ pageSize: 10, showSizeChanger: false, hideOnSinglePage: true }}
           locale={{ emptyText: '暂无待办，点击右上角新建' }}
+          onRow={(task) => ({
+            className: task.id === completingId ? 'task-row-completing' : '',
+          })}
         />
       </Card>
 
@@ -423,7 +467,15 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
           <Form.Item name="notes" label="备注">
             <Input.TextArea rows={3} placeholder="补充背景、跟催要求等" maxLength={500} />
           </Form.Item>
+          <Form.Item name="progress" label="进度反馈">
+            <Input.TextArea
+              rows={2}
+              placeholder="快速记录当前进展，例如：已约供应商周四到厂验证，方案基本可行"
+              maxLength={200}
+            />
+          </Form.Item>
         </Form>
+
       </Modal>
     </div>
   )

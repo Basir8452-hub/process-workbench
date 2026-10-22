@@ -13,6 +13,10 @@ export interface Task {
   notes?: string
   createdAt: string
   completedAt?: string
+  /** 最近一次进度反馈（纯文本，一句话说明当前进展） */
+  progress?: string
+  /** 最近一次进度反馈时间（ISO 字符串） */
+  progressAt?: string
 }
 
 export type IssueSeverity = 'stop' | 'batch' | 'normal'
