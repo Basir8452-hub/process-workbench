@@ -561,11 +561,9 @@ body {
 
 @keyframes task-complete-sweep {
   0% {
-    background-color: rgba(22, 163, 74, 0);
     background-size: 0% 100%;
   }
   100% {
-    background-color: rgba(22, 163, 74, 0.95);
     background-size: 100% 100%;
   }
 }
@@ -597,29 +595,48 @@ body {
   }
 }
 
-.task-row-completing {
+/* 完成动画：单元格伪元素实现——
+   动画层画在每个 td 的 ::before / ::after 上（inset:0 覆盖整格含 padding），
+   伪元素是 td 的子元素，天然渲染在 td 背景（含 antd hover 浅灰底）之上，绝对可见：
+   ① td::before 绿色扫过层（z-index 0）
+   ② td::after 对勾浮层（z-index 1）
+   ③ td 内容（antd 渲染的 children）保持默认层级，位于伪元素之上 */
+.task-row-completing > td {
   position: relative;
-  background-image: linear-gradient(90deg, #bbf7d0, #22c55e);
-  background-repeat: no-repeat;
-  animation:
-    task-complete-sweep 0.45s ease forwards,
-    task-complete-fade 0.4s ease 0.5s forwards;
 }
 
-.task-complete-check {
+.task-row-completing > td::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(90deg, #86efac, #22c55e);
+  background-repeat: no-repeat;
+  background-size: 0% 100%;
+  animation: task-complete-sweep 0.5s ease forwards;
+  z-index: 0;
+}
+
+.task-row-completing > td::after {
+  content: '';
   position: absolute;
   left: 50%;
   top: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 34px;
-  color: #16a34a;
-  background: rgba(255, 255, 255, 0.92);
+  width: 36px;
+  height: 36px;
+  margin-left: -18px;
+  margin-top: -18px;
   border-radius: 50%;
-  padding: 6px;
+  background: #fff url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%2316a34a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>') center/60% no-repeat;
   box-shadow: 0 4px 14px rgba(22, 163, 74, 0.35);
-  animation: task-check-bounce 0.4s ease 0.25s both;
+  opacity: 0;
+  animation: task-check-bounce 0.45s ease 0.25s forwards;
+  z-index: 1;
+}
+
+.task-row-completing > td > * {
+  position: relative;
   z-index: 2;
-  pointer-events: none;
+  animation: task-complete-fade 0.4s ease 0.5s forwards;
 }
 
 .risk-list {

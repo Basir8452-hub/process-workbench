@@ -234,11 +234,6 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
         <div>
           <div className={task.done ? 'text-done' : 'text-strong'}>{task.title}</div>
           {task.notes ? <div className="table-subtext">{task.notes}</div> : null}
-          {task.id === completingId ? (
-            <div className="task-complete-check" aria-hidden>
-              <CheckCircleOutlined />
-            </div>
-          ) : null}
         </div>
       ),
     },
