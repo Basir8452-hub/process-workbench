@@ -37,13 +37,16 @@ import { ISSUE_STATUS_COLORS, ISSUE_STATUS_FLOW, ISSUE_STATUS_LABELS } from '../
 import { useAppStore } from '../store/AppStore'
 import type { Task } from '../types'
 import {
+  currentWeekRange,
   daysUntil,
   dueLabel,
   formatDate,
   isDueToday,
   isDueSoon,
+  isInRange,
   isOverdue,
   isWithinDays,
+  monthLabel,
   today,
   weekdayLabel,
 } from '../utils/date'
@@ -94,6 +97,29 @@ export function DashboardPage({
   const closureRate = data.issues.length
     ? Math.round((closedCount / data.issues.length) * 100)
     : 0
+
+  // 业务运行指标：本周新增/关闭问题、本月沉淀知识、问题平均关闭周期
+  const [weekStart, weekEnd] = currentWeekRange()
+  const weekNewIssues = data.issues.filter((issue) =>
+    isInRange(issue.foundDate, weekStart, weekEnd),
+  )
+  const weekClosedIssues = data.issues.filter(
+    (issue) => issue.status === 'closed' && isInRange(issue.closedDate, weekStart, weekEnd),
+  )
+  const monthKnowledge = data.knowledge.filter((item) =>
+    isInRange(item.createdAt, `${monthLabel().slice(0, 7)}-01`, today()),
+  )
+  const closedIssuesWithCycle = data.issues.filter(
+    (issue) => issue.status === 'closed' && issue.closedDate && issue.foundDate,
+  )
+  const avgCloseDays = closedIssuesWithCycle.length
+    ? Math.round(
+        closedIssuesWithCycle.reduce((sum, issue) => {
+          const diff = new Date(issue.closedDate!).getTime() - new Date(issue.foundDate).getTime()
+          return sum + diff / 86400000
+        }, 0) / closedIssuesWithCycle.length,
+      )
+    : null
 
   const statusChartOption = useMemo<EChartsOption>(() => {
     const statuses = [...ISSUE_STATUS_FLOW, 'onhold' as const]
@@ -275,6 +301,57 @@ export function DashboardPage({
             />
             <div className="stat-foot">
               {data.settings.expiryWarningDays ?? 30} 天内到期
+            </div>
+          </Card>
+        </Col>
+      </Row>
+
+      <Row gutter={16}>
+        <Col xs={12} md={6}>
+          <Card className="stat-card" variant="borderless">
+            <Statistic
+              title="本周新增问题"
+              value={weekNewIssues.length}
+              prefix={<PlusOutlined style={{ color: '#2563eb' }} />}
+              suffix="个"
+            />
+            <div className="stat-foot">{weekStart} 至 {weekEnd}</div>
+          </Card>
+        </Col>
+        <Col xs={12} md={6}>
+          <Card className="stat-card" variant="borderless">
+            <Statistic
+              title="本周关闭问题"
+              value={weekClosedIssues.length}
+              prefix={<CheckCircleOutlined style={{ color: '#16a34a' }} />}
+              suffix="个"
+            />
+            <div className="stat-foot">本周完成闭环的问题</div>
+          </Card>
+        </Col>
+        <Col xs={12} md={6}>
+          <Card className="stat-card" variant="borderless">
+            <Statistic
+              title="本月沉淀知识"
+              value={monthKnowledge.length}
+              prefix={<BookOutlined style={{ color: '#7c3aed' }} />}
+              suffix="条"
+            />
+            <div className="stat-foot">本月知识库新增记录</div>
+          </Card>
+        </Col>
+        <Col xs={12} md={6}>
+          <Card className="stat-card" variant="borderless">
+            <Statistic
+              title="平均关闭周期"
+              value={avgCloseDays ?? '-'}
+              prefix={<ClockCircleOutlined style={{ color: '#d97706' }} />}
+              suffix={avgCloseDays !== null ? '天' : ''}
+            />
+            <div className="stat-foot">
+              {closedIssuesWithCycle.length > 0
+                ? `基于 ${closedIssuesWithCycle.length} 个已关闭问题`
+                : '暂无已关闭问题数据'}
             </div>
           </Card>
         </Col>

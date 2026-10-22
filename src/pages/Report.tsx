@@ -26,6 +26,7 @@ import type { ColumnsType } from 'antd/es/table'
 import dayjs, { type Dayjs } from 'dayjs'
 import { useMemo, useState } from 'react'
 import { IssueStatusTag, PriorityTag } from '../components/Tags'
+import { ISSUE_STATUS_LABELS } from '../constants'
 import { useAppStore } from '../store/AppStore'
 import type { WeeklyReport } from '../types'
 import { formatDate, isInRange, isOverdue } from '../utils/date'
@@ -86,7 +87,21 @@ export function ReportPage() {
     )
   }, [data.tasks, range])
 
-  const autoSummary = `统计周期内新增问题 ${newIssues.length} 个，关闭 ${closedIssues.length} 个；完成待办 ${completedTasks.length} 项；截至期末超期未关闭问题 ${overdueIssues.length} 个；文件复审到期 ${expiringDocs.length} 份。`
+  const autoSummary = [
+    `统计周期内新增问题 ${newIssues.length} 个，关闭 ${closedIssues.length} 个；完成待办 ${completedTasks.length} 项；文件复审到期 ${expiringDocs.length} 份。`,
+    completedTasks.length > 0
+      ? `\n本周完成事项：\n${completedTasks.map((task) => `- ${task.title}`).join('\n')}`
+      : '',
+    closedIssues.length > 0
+      ? `\n本周关闭问题：\n${closedIssues.map((issue) => `- ${issue.code} ${issue.title}`).join('\n')}`
+      : '',
+    newIssues.length > 0
+      ? `\n本周新增问题：\n${newIssues.map((issue) => `- ${issue.code} ${issue.title}（${ISSUE_STATUS_LABELS[issue.status]}）`).join('\n')}`
+      : '',
+    nextWeekTasks.length > 0
+      ? `\n下周待办：\n${nextWeekTasks.map((task) => `- ${task.title}（${formatDate(task.dueDate)}）`).join('\n')}`
+      : '',
+  ].join('')
 
   const handleExport = async () => {
     try {
@@ -320,6 +335,18 @@ export function ReportPage() {
           <span className="card-title">
             <SendOutlined /> 周报内容
           </span>
+        }
+        extra={
+          <Button
+            size="small"
+            icon={<DownloadOutlined />}
+            onClick={() => {
+              setHighlights(autoSummary)
+              message.success('已填入自动汇总，可在此基础上修改')
+            }}
+          >
+            填入自动汇总
+          </Button>
         }
       >
         <Form layout="vertical">

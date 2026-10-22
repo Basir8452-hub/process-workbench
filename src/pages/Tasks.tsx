@@ -168,7 +168,7 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
       toggleTask(task, true)
       message.success('待办已完成')
       setCompletingId(null)
-    }, 700)
+    }, 800)
   }
 
   const filtered = useMemo(() => {
