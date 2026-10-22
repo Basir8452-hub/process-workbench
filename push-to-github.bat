@@ -2,15 +2,28 @@
 REM ============================================
 REM  Process Workbench - One-click push to GitHub
 REM  Double-click this file. It pushes code to the
-REM  main branch and pushes tag v0.5.0. Then
-REM  GitHub Actions will build the exe and publish
-REM  it to Releases automatically.
+REM  main branch and pushes the latest version tag.
+REM  Then GitHub Actions will build the exe and
+REM  publish it to Releases automatically.
 REM ============================================
 cd /d "%~dp0"
 
 echo ============================================
-echo  Pushing code and version tag to GitHub...
+echo  Pushing code and latest version tag to GitHub...
 echo ============================================
+echo.
+
+REM Detect the latest tag automatically (e.g. v0.5.1)
+set LATEST_TAG=
+for /f "delims=" %%t in ('git tag --sort=-version:refname') do if not defined LATEST_TAG set "LATEST_TAG=%%t"
+
+if not defined LATEST_TAG (
+    echo [ERROR] No git tag found in this repository.
+    echo Please make sure this folder is the unpacked repo.
+    goto :end
+)
+
+echo Latest tag detected: %LATEST_TAG%
 echo.
 
 echo [1/2] Pushing code to main branch...
@@ -22,8 +35,8 @@ if errorlevel 1 (
 )
 
 echo.
-echo [2/2] Pushing version tag v0.5.0...
-git push origin v0.5.0
+echo [2/2] Pushing version tag %LATEST_TAG%...
+git push origin %LATEST_TAG%
 if errorlevel 1 (
     echo.
     echo [FAILED] Push tag failed. Take a screenshot of this window and send it to me.
