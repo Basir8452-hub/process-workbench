@@ -2,7 +2,7 @@
 
 面向工艺开发工程师的本地桌面工作台，覆盖工作驾驶舱、现场问题闭环、工艺文件、周报、个人知识库、储能资讯与 AI 助手。
 
-- 当前版本：`0.4.0`
+- 当前版本：以仓库最新 tag 为准（见 GitHub Releases）
 - 应用形态：Windows 桌面 EXE（Electron）
 - 数据形态：本地 JSON 文件，单机离线优先
 - 技术栈：Electron 44 + React 19 + TypeScript 7 + Vite 8 + Ant Design 6
