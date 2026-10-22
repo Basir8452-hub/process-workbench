@@ -222,7 +222,7 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
   const columns: ColumnsType<Task> = [
     {
       title: '',
-      width: 44,
+      width: 40,
       render: (_, task) => (
         <Checkbox checked={task.done} onChange={(event) => toggleTask(task, event.target.checked)} />
       ),
@@ -230,6 +230,7 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
     {
       title: '待办事项',
       dataIndex: 'title',
+      width: 320,
       render: (_, task) => (
         <div>
           <div className={task.done ? 'text-done' : 'text-strong'}>{task.title}</div>
@@ -240,13 +241,13 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
     {
       title: '优先级',
       dataIndex: 'priority',
-      width: 90,
+      width: 80,
       render: (value: Task['priority']) => <PriorityTag value={value} />,
     },
     {
       title: '截止日期',
       dataIndex: 'dueDate',
-      width: 150,
+      width: 130,
       render: (_, task) => {
         if (!task.dueDate) return <span className="text-muted">未设置</span>
         const overdue = !task.done && isOverdue(task.dueDate)
@@ -262,7 +263,7 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
     },
     {
       title: '关联对象',
-      width: 220,
+      width: 180,
       render: (_, task) => {
         const label = linkedLabel(task)
         return label === '-' ? (
@@ -276,7 +277,7 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
     },
     {
       title: '进度反馈',
-      width: 200,
+      width: 260,
       render: (_, task) =>
         task.progress ? (
           <div className="task-progress-line">
@@ -291,7 +292,7 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
     },
     {
       title: '操作',
-      width: 160,
+      width: 150,
       render: (_, task) => (
         <Space size={6}>
           {!task.done ? (
@@ -399,7 +400,7 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
           rowKey="id"
           columns={columns}
           dataSource={filtered}
-          scroll={{ x: 900 }}
+          scroll={{ x: 1160 }}
           pagination={{ pageSize: 10, showSizeChanger: false, hideOnSinglePage: true }}
           locale={{ emptyText: '暂无待办，点击右上角新建' }}
           onRow={(task) => ({

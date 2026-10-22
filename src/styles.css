@@ -595,47 +595,43 @@ body {
   }
 }
 
-/* 完成动画：单元格伪元素实现——
-   动画层画在每个 td 的 ::before / ::after 上（inset:0 覆盖整格含 padding），
-   伪元素是 td 的子元素，天然渲染在 td 背景（含 antd hover 浅灰底）之上，绝对可见：
-   ① td::before 绿色扫过层（z-index 0）
-   ② td::after 对勾浮层（z-index 1）
-   ③ td 内容（antd 渲染的 children）保持默认层级，位于伪元素之上 */
+/* 完成动画：整行实现——
+   ① 绿色扫过：画在整行 tr 的背景上，同时清除 antd 单元格 hover 灰底（!important 覆盖）
+   ② 对勾弹跳：只画在第一个单元格（复选框列）的 ::after 上，垂直居中于整行，水平贴左
+   ③ 内容淡出：所有 td 内容统一淡出
+   整个动画一次只在一行播放（completingId 控制） */
+.task-row-completing {
+  background-image: linear-gradient(90deg, #86efac, #22c55e) !important;
+  background-repeat: no-repeat !important;
+  background-size: 0% 100% !important;
+  animation: task-complete-sweep 0.5s ease forwards;
+}
+
 .task-row-completing > td {
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
+.task-row-completing > td:first-child {
   position: relative;
 }
 
-.task-row-completing > td::before {
+.task-row-completing > td:first-child::after {
   content: '';
   position: absolute;
-  inset: 0;
-  background-image: linear-gradient(90deg, #86efac, #22c55e);
-  background-repeat: no-repeat;
-  background-size: 0% 100%;
-  animation: task-complete-sweep 0.5s ease forwards;
-  z-index: 0;
-}
-
-.task-row-completing > td::after {
-  content: '';
-  position: absolute;
-  left: 50%;
+  left: 12px;
   top: 50%;
   width: 36px;
   height: 36px;
-  margin-left: -18px;
   margin-top: -18px;
   border-radius: 50%;
   background: #fff url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%2316a34a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>') center/60% no-repeat;
   box-shadow: 0 4px 14px rgba(22, 163, 74, 0.35);
   opacity: 0;
   animation: task-check-bounce 0.45s ease 0.25s forwards;
-  z-index: 1;
 }
 
 .task-row-completing > td > * {
-  position: relative;
-  z-index: 2;
   animation: task-complete-fade 0.4s ease 0.5s forwards;
 }
 
