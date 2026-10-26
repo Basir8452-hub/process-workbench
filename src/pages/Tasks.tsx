@@ -307,7 +307,17 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
                 onClick={() => completeTask(task)}
               />
             </Tooltip>
-          ) : null}
+          ) : (
+            <Tooltip title="已完成" placement="left">
+              <Button
+                shape="circle"
+                icon={<CheckCircleOutlined />}
+                className="task-done-btn"
+                aria-label="已完成"
+                disabled
+              />
+            </Tooltip>
+          )}
           <Tooltip title="编辑" placement="left">
             <Button type="text" size="small" icon={<EditOutlined />} onClick={() => openEdit(task)} />
           </Tooltip>

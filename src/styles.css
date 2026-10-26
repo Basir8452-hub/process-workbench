@@ -559,6 +559,17 @@ body {
   transform: scale(1.08);
 }
 
+/* 已完成状态占位图标：与完成按钮同尺寸（40px），保证三态行高一致、点击完成时行不跳动 */
+.task-done-btn {
+  width: 40px !important;
+  height: 40px !important;
+  font-size: 20px;
+  color: #cbd5e1 !important;
+  border-color: #e2e8f0 !important;
+  background: #f8fafc !important;
+  cursor: default !important;
+}
+
 @keyframes task-complete-sweep {
   0% {
     background-size: 0% 100%;
