@@ -595,16 +595,16 @@ body {
   }
 }
 
-/* 完成动画：单元格级实现（tr 上的 background-size 动画在表格行上不渲染，v0.5.5 实测失效；
-   改为 td 级——绿色扫过画在每个 td 上，所有 td 同步播放视觉上即整行扫过；对勾只弹在第一个 td）：
-   ① td::before 绿色扫过层（td 子元素，渲染在 td 背景/hover 灰底之上，必然可见）
-   ② 首列 td::after 对勾弹跳（只出现一次）
-   ③ td 内容保持在最上层并淡出 */
-.task-row-completing > td {
+/* 完成动画：tr 级伪元素实现真正的整行连贯动画——
+   tr 处于 task-row-completing 时：
+   ① ::before：绿色从左到右扫过整行（单一盒子覆盖全部单元格，连贯不断裂，不被 hover 灰底遮挡）
+   ② ::after：居中绿色对勾弹跳浮现
+   ③ td 内容在扫过后淡出，动画结束 className 复位，行恢复正常 */
+tr.task-row-completing {
   position: relative;
 }
 
-.task-row-completing > td::before {
+tr.task-row-completing::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -612,29 +612,43 @@ body {
   background-repeat: no-repeat;
   background-size: 0% 100%;
   animation: task-complete-sweep 0.5s ease forwards;
-  z-index: 0;
+  z-index: 2;
+  pointer-events: none;
 }
 
-.task-row-completing > td:first-child::after {
-  content: '';
+tr.task-row-completing::after {
+  content: '✓';
   position: absolute;
-  left: 12px;
+  left: 50%;
   top: 50%;
   width: 36px;
   height: 36px;
+  margin-left: -18px;
   margin-top: -18px;
   border-radius: 50%;
-  background: #fff url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%2316a34a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>') center/60% no-repeat;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: #16a34a;
   box-shadow: 0 4px 14px rgba(22, 163, 74, 0.35);
   opacity: 0;
   animation: task-check-bounce 0.45s ease 0.25s forwards;
-  z-index: 2;
+  z-index: 3;
+  pointer-events: none;
 }
 
-.task-row-completing > td > * {
-  position: relative;
-  z-index: 1;
+tr.task-row-completing > td {
   animation: task-complete-fade 0.4s ease 0.5s forwards;
+}
+
+/* 操作列竖向排列：完成 / 编辑 / 删除按钮从上到下排布，压缩横向占用 */
+.task-actions-vertical {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
 }
 
 .risk-list {

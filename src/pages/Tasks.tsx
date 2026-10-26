@@ -222,7 +222,7 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
   const columns: ColumnsType<Task> = [
     {
       title: '',
-      width: 40,
+      width: 36,
       render: (_, task) => (
         <Checkbox checked={task.done} onChange={(event) => toggleTask(task, event.target.checked)} />
       ),
@@ -230,7 +230,7 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
     {
       title: '待办事项',
       dataIndex: 'title',
-      width: 320,
+      width: 260,
       render: (_, task) => (
         <div>
           <div className={task.done ? 'text-done' : 'text-strong'}>{task.title}</div>
@@ -241,13 +241,13 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
     {
       title: '优先级',
       dataIndex: 'priority',
-      width: 80,
+      width: 76,
       render: (value: Task['priority']) => <PriorityTag value={value} />,
     },
     {
       title: '截止日期',
       dataIndex: 'dueDate',
-      width: 130,
+      width: 118,
       render: (_, task) => {
         if (!task.dueDate) return <span className="text-muted">未设置</span>
         const overdue = !task.done && isOverdue(task.dueDate)
@@ -263,7 +263,7 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
     },
     {
       title: '关联对象',
-      width: 180,
+      width: 150,
       render: (_, task) => {
         const label = linkedLabel(task)
         return label === '-' ? (
@@ -277,7 +277,7 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
     },
     {
       title: '进度反馈',
-      width: 260,
+      width: 200,
       render: (_, task) =>
         task.progress ? (
           <div className="task-progress-line">
@@ -292,11 +292,12 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
     },
     {
       title: '操作',
-      width: 150,
+      width: 56,
+      align: 'center',
       render: (_, task) => (
-        <Space size={6}>
+        <div className="task-actions-vertical">
           {!task.done ? (
-            <Tooltip title="标记完成">
+            <Tooltip title="标记完成" placement="left">
               <Button
                 type="primary"
                 shape="circle"
@@ -307,11 +308,13 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
               />
             </Tooltip>
           ) : null}
-          <Button type="text" size="small" icon={<EditOutlined />} onClick={() => openEdit(task)} />
+          <Tooltip title="编辑" placement="left">
+            <Button type="text" size="small" icon={<EditOutlined />} onClick={() => openEdit(task)} />
+          </Tooltip>
           <Popconfirm title="删除这条待办？" onConfirm={() => removeTask(task)}>
             <Button type="text" size="small" danger icon={<DeleteOutlined />} />
           </Popconfirm>
-        </Space>
+        </div>
       ),
     },
   ]
@@ -400,7 +403,7 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
           rowKey="id"
           columns={columns}
           dataSource={filtered}
-          scroll={{ x: 1160 }}
+          scroll={{ x: 900 }}
           pagination={{ pageSize: 10, showSizeChanger: false, hideOnSinglePage: true }}
           locale={{ emptyText: '暂无待办，点击右上角新建' }}
           onRow={(task) => ({
