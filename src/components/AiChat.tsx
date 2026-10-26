@@ -22,7 +22,7 @@ import { ISSUE_STATUS_LABELS } from '../constants'
 import { chatWithAI } from '../services/ai'
 import { useAppStore } from '../store/AppStore'
 import type { StoreData } from '../types'
-import { isDueToday, isOverdue, isWithinDays, today } from '../utils/date'
+import { isDueToday, isOverdue, today } from '../utils/date'
 import { uid } from '../utils/id'
 import type { PageKey } from './AppLayout'
 
@@ -39,7 +39,7 @@ interface ChatEntry {
 const SUGGESTIONS = [
   '帮我梳理一个 5Why 分析思路',
   '根据本周问题写一段周报',
-  '工艺文件复审要检查哪些内容？',
+  '帮我检索知识库里焊接相关的案例',
 ]
 
 function loadChat(): ChatEntry[] {
@@ -67,11 +67,6 @@ function buildWorkbenchContext(data: StoreData): string {
   const todayTasks = data.tasks.filter(
     (task) => !task.done && (isDueToday(task.dueDate) || isOverdue(task.dueDate)),
   )
-  const expiringDocs = data.documents.filter(
-    (doc) =>
-      doc.status !== 'obsolete' &&
-      isWithinDays(doc.reviewDate, data.settings.expiryWarningDays ?? 30),
-  )
 
   return [
     `今天：${today()}`,
@@ -88,12 +83,7 @@ function buildWorkbenchContext(data: StoreData): string {
         .join('；') || '无'
     }`,
     `今日待办：${todayTasks.slice(0, 6).map((task) => task.title).join('；') || '无'}`,
-    `临近复审文件：${
-      expiringDocs
-        .slice(0, 6)
-        .map((doc) => `${doc.code} ${doc.name}（${doc.reviewDate}）`)
-        .join('；') || '无'
-    }`,
+    `知识库：共 ${data.knowledge.length} 条（案例/标准/模板/经验），可辅助问题分析`,
   ].join('\n')
 }
 

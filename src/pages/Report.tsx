@@ -70,15 +70,6 @@ export function ReportPage() {
     () => data.issues.filter((issue) => issue.status !== 'closed' && isOverdue(issue.dueDate)),
     [data.issues],
   )
-  const expiringDocs = useMemo(
-    () =>
-      data.documents.filter(
-        (doc) =>
-          doc.status !== 'obsolete' &&
-          (isOverdue(doc.reviewDate) || isInRange(doc.reviewDate, startDate, endDate)),
-      ),
-    [data.documents, startDate, endDate],
-  )
   const nextWeekTasks = useMemo(() => {
     const nextStart = range[1].add(1, 'day')
     const nextEnd = range[1].add(7, 'day')
@@ -88,7 +79,7 @@ export function ReportPage() {
   }, [data.tasks, range])
 
   const autoSummary = [
-    `统计周期内新增问题 ${newIssues.length} 个，关闭 ${closedIssues.length} 个；完成待办 ${completedTasks.length} 项；文件复审到期 ${expiringDocs.length} 份。`,
+    `统计周期内新增问题 ${newIssues.length} 个，关闭 ${closedIssues.length} 个；完成待办 ${completedTasks.length} 项；超期未关闭问题 ${overdueIssues.length} 个。`,
     completedTasks.length > 0
       ? `\n本周完成事项：\n${completedTasks.map((task) => `- ${task.title}`).join('\n')}`
       : '',
@@ -112,7 +103,6 @@ export function ReportPage() {
         closedIssues,
         completedTasks,
         overdueIssues,
-        expiringDocs,
         highlights: highlights || autoSummary,
         nextPlan,
       })

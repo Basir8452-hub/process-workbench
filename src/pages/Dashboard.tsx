@@ -6,7 +6,6 @@ import {
   CheckCircleOutlined,
   CheckSquareOutlined,
   ClockCircleOutlined,
-  FileTextOutlined,
   PlusOutlined,
   UserOutlined,
   WarningOutlined,
@@ -25,7 +24,6 @@ import {
   Progress,
   Row,
   Statistic,
-  Tag,
 } from 'antd'
 import { useMemo, useState } from 'react'
 import type { EChartsOption } from 'echarts'
@@ -38,14 +36,11 @@ import { useAppStore } from '../store/AppStore'
 import type { Task } from '../types'
 import {
   currentWeekRange,
-  daysUntil,
   dueLabel,
-  formatDate,
   isDueToday,
   isDueSoon,
   isInRange,
   isOverdue,
-  isWithinDays,
   monthLabel,
   today,
   weekdayLabel,
@@ -80,11 +75,7 @@ export function DashboardPage({
 
   const openIssues = data.issues.filter((issue) => issue.status !== 'closed')
   const overdueIssues = openIssues.filter((issue) => isOverdue(issue.dueDate))
-  const expiringDocs = data.documents.filter(
-    (doc) =>
-      doc.status !== 'obsolete' &&
-      isWithinDays(doc.reviewDate, data.settings.expiryWarningDays ?? 30),
-  )
+  const holdIssues = data.issues.filter((issue) => issue.status === 'onhold')
   const todayTasks = data.tasks
     .filter((task) => !task.done && (isDueSoon(task.dueDate, 3) || isOverdue(task.dueDate)))
     .sort((a, b) => {
@@ -209,9 +200,9 @@ export function DashboardPage({
             {overdueIssues.length > 0
               ? `有 ${overdueIssues.length} 个问题已超期，建议优先处理。`
               : '目前没有超期问题，保持节奏。'}
-            {expiringDocs.length > 0
-              ? ` 另有 ${expiringDocs.length} 份工艺文件临近复审。`
-              : ' 工艺文件复审状态正常。'}
+            {holdIssues.length > 0
+              ? ` 另有 ${holdIssues.length} 个问题处于挂起状态。`
+              : ''}
             {' '}以下展示 3 天内到期和已逾期的待办。
           </p>
           <div className="hero-actions">
@@ -294,14 +285,12 @@ export function DashboardPage({
         <Col xs={12} md={6}>
           <Card className="stat-card" variant="borderless">
             <Statistic
-              title="临近复审文件"
-              value={expiringDocs.length}
-              prefix={<FileTextOutlined style={{ color: '#0f766e' }} />}
-              suffix="份"
+              title="挂起问题"
+              value={holdIssues.length}
+              prefix={<ClockCircleOutlined style={{ color: '#94a3b8' }} />}
+              suffix="个"
             />
-            <div className="stat-foot">
-              {data.settings.expiryWarningDays ?? 30} 天内到期
-            </div>
+            <div className="stat-foot">暂时搁置、待资源到位的问题</div>
           </Card>
         </Col>
       </Row>
@@ -416,10 +405,10 @@ export function DashboardPage({
             variant="borderless"
             className="panel-card risk-card"
           >
-            {overdueIssues.length === 0 && expiringDocs.length === 0 ? (
+            {overdueIssues.length === 0 ? (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="暂无超期问题或到期文件"
+                description="暂无超期问题"
               />
             ) : (
               <div className="risk-list">
@@ -437,24 +426,6 @@ export function DashboardPage({
                       </small>
                     </span>
                     <IssueStatusTag value={issue.status} />
-                  </button>
-                ))}
-                {expiringDocs.slice(0, 4).map((doc) => (
-                  <button
-                    className="risk-item"
-                    key={doc.id}
-                    onClick={() => onNavigate('documents')}
-                  >
-                    <span className="risk-dot warning" />
-                    <span className="risk-text">
-                      <strong>{doc.name}</strong>
-                      <small>
-                        {doc.code} · 复审日 {formatDate(doc.reviewDate)}
-                      </small>
-                    </span>
-                    <Tag color="gold" style={{ marginInlineEnd: 0 }}>
-                      {daysUntil(doc.reviewDate)} 天
-                    </Tag>
                   </button>
                 ))}
               </div>

@@ -1,11 +1,13 @@
-import { createEmptyStore } from '../constants'
+import { createEmptyStore, migrateStore } from '../constants'
 import type {
   AppInfo,
+  ContentBlock,
   ExcelOpenResult,
   FileResult,
   ImportStoreResult,
   NewsFeedItem,
   NewsFetchResult,
+  RootCauseCategory,
   SaveResult,
   StoreData,
 } from '../types'
@@ -16,19 +18,34 @@ const LOCAL_BACKUP_PREFIX = 'process-workbench:backup:'
 export function normalizeStore(input: Partial<StoreData> | null | undefined): StoreData {
   const empty = createEmptyStore()
   if (!input || typeof input !== 'object') return empty
-  return {
+  const raw: StoreData = {
     version: input.version ?? 1,
     tasks: Array.isArray(input.tasks) ? input.tasks : [],
-    issues: Array.isArray(input.issues) ? input.issues : [],
+    issues: Array.isArray(input.issues)
+      ? input.issues.map((issue) => ({
+          ...issue,
+          batchNo: (issue as { batchNo?: string }).batchNo ?? undefined,
+          rootCauseCategory: (issue as { rootCauseCategory?: RootCauseCategory })
+            .rootCauseCategory ?? undefined,
+        }))
+      : [],
     issueLogs: Array.isArray(input.issueLogs) ? input.issueLogs : [],
     documents: Array.isArray(input.documents) ? input.documents : [],
-    knowledge: Array.isArray(input.knowledge) ? input.knowledge : [],
+    knowledge: Array.isArray(input.knowledge)
+      ? input.knowledge.map((item) => ({
+          ...item,
+          blocks: Array.isArray((item as { blocks?: ContentBlock[] }).blocks)
+            ? (item as { blocks: ContentBlock[] }).blocks
+            : [],
+        }))
+      : [],
     reports: Array.isArray(input.reports) ? input.reports : [],
     newsArticles: Array.isArray(input.newsArticles) ? input.newsArticles : [],
     newsDigests: Array.isArray(input.newsDigests) ? input.newsDigests : [],
     toeflRecords: Array.isArray(input.toeflRecords) ? input.toeflRecords : [],
     settings: { ...empty.settings, ...(input.settings ?? {}) },
   }
+  return migrateStore(raw)
 }
 
 function downloadBlob(blob: Blob, filename: string): void {

@@ -5,6 +5,7 @@ import {
   ISSUE_SEVERITY_LABELS,
   ISSUE_STATUS_LABELS,
   KNOWLEDGE_TYPE_LABELS,
+  ROOT_CAUSE_CATEGORY_LABELS,
 } from '../constants'
 import { saveExcel } from '../services/storage'
 import type {
@@ -15,6 +16,7 @@ import type {
   IssueStatus,
   KnowledgeType,
   ProcessDocument,
+  RootCauseCategory,
   Task,
 } from '../types'
 import { formatDate, today } from './date'
@@ -71,6 +73,7 @@ const ISSUE_HEADERS = [
   '产品/机型',
   '产线',
   '工序段',
+  '批次号',
   '严重度',
   '状态',
   '责任人',
@@ -83,6 +86,7 @@ const ISSUE_HEADERS = [
   '根因分析（5Why）',
   '永久措施',
   '验证结果',
+  '根因类别',
   '是否重复问题',
 ]
 
@@ -93,6 +97,7 @@ function issueRow(issue: Issue): (string | number)[] {
     issue.product ?? '',
     issue.line ?? '',
     issue.process ?? '',
+    issue.batchNo ?? '',
     ISSUE_SEVERITY_LABELS[issue.severity],
     ISSUE_STATUS_LABELS[issue.status],
     issue.owner ?? '',
@@ -105,11 +110,12 @@ function issueRow(issue: Issue): (string | number)[] {
     issue.rootCause ?? '',
     issue.permanentAction ?? '',
     issue.verification ?? '',
+    issue.rootCauseCategory ? ROOT_CAUSE_CATEGORY_LABELS[issue.rootCauseCategory] : '',
     issue.isRepeat ? '是' : '否',
   ]
 }
 
-const ISSUE_WIDTHS = [16, 30, 14, 12, 12, 8, 10, 10, 14, 12, 12, 12, 36, 28, 36, 32, 28, 10]
+const ISSUE_WIDTHS = [16, 30, 14, 12, 12, 12, 8, 10, 10, 14, 12, 12, 12, 36, 28, 36, 32, 28, 22, 10]
 
 export async function exportIssues(issues: Issue[]): Promise<FileResult> {
   const workbook = XLSX.utils.book_new()
@@ -125,6 +131,7 @@ export async function downloadIssueTemplate(): Promise<FileResult> {
     'XX-1000',
     'SMT-01',
     '焊接',
+    'B20260101-001',
     '批量',
     '分析中',
     '张三',
@@ -137,12 +144,18 @@ export async function downloadIssueTemplate(): Promise<FileResult> {
     '5Why：为什么虚焊……',
     '调整焊接参数并更新 SOP',
     '',
+    '法（工艺/方法/标准）',
     '否',
   ]
   const workbook = XLSX.utils.book_new()
   const sheet = makeSheet([ISSUE_HEADERS, example], ISSUE_WIDTHS)
   XLSX.utils.book_append_sheet(workbook, sheet, '问题台账')
   return saveExcel(writeWorkbook(workbook), '问题台账导入模板.xlsx')
+}
+
+function parseRootCauseCategory(value: string): RootCauseCategory | undefined {
+  const entry = Object.entries(ROOT_CAUSE_CATEGORY_LABELS).find(([, label]) => label === value)
+  return entry?.[0] as RootCauseCategory | undefined
 }
 
 export async function parseIssueExcel(buffer: ArrayBuffer): Promise<Partial<Issue>[]> {
@@ -156,6 +169,7 @@ export async function parseIssueExcel(buffer: ArrayBuffer): Promise<Partial<Issu
       product: str(row['产品/机型']) || str(row['产品']),
       line: str(row['产线']),
       process: str(row['工序段']),
+      batchNo: str(row['批次号']),
       severity: parseSeverity(str(row['严重度'])),
       status: parseIssueStatus(str(row['状态'])),
       owner: str(row['责任人']),
@@ -168,24 +182,13 @@ export async function parseIssueExcel(buffer: ArrayBuffer): Promise<Partial<Issu
       rootCause: str(row['根因分析（5Why）']) || str(row['根因分析']),
       permanentAction: str(row['永久措施']),
       verification: str(row['验证结果']),
+      rootCauseCategory: parseRootCauseCategory(str(row['根因类别'])),
       isRepeat: str(row['是否重复问题']) === '是',
     }))
     .filter((row) => row.title)
 }
 
-const DOC_HEADERS = [
-  '文件编号',
-  '文件名称',
-  '文件类型',
-  '版本',
-  '工序段',
-  '产线',
-  '状态',
-  '生效日期',
-  '复审日期',
-  '文件路径',
-  '备注',
-]
+const DOC_HEADERS = ['文件编号', '文件名称', '文件类型', '版本', '状态', '标签', '文件路径', '备注']
 
 function docRow(doc: ProcessDocument): (string | number)[] {
   return [
@@ -193,17 +196,14 @@ function docRow(doc: ProcessDocument): (string | number)[] {
     doc.name,
     doc.type,
     doc.version,
-    doc.process ?? '',
-    doc.line ?? '',
     DOC_STATUS_LABELS[doc.status],
-    formatDate(doc.effectiveDate),
-    formatDate(doc.reviewDate),
+    doc.tags.join('、'),
     doc.filePath ?? '',
     doc.notes ?? '',
   ]
 }
 
-const DOC_WIDTHS = [16, 30, 12, 8, 12, 12, 10, 12, 12, 36, 24]
+const DOC_WIDTHS = [16, 30, 12, 8, 10, 28, 36, 24]
 
 export async function exportDocuments(documents: ProcessDocument[]): Promise<FileResult> {
   const workbook = XLSX.utils.book_new()
@@ -218,11 +218,8 @@ export async function downloadDocumentTemplate(): Promise<FileResult> {
     '示例：焊接作业指导书',
     'SOP',
     'A',
-    '焊接',
-    'SMT-01',
     '受控',
-    '2026-01-01',
-    '2027-01-01',
+    '工序:焊接、产线:SMT-01、储能产品',
     '\\\\共享盘\\工艺文件\\SOP-焊接-001.pdf',
     '变更时需同步培训',
   ]
@@ -242,11 +239,13 @@ export async function parseDocumentExcel(buffer: ArrayBuffer): Promise<Partial<P
       name: str(row['文件名称']),
       type: str(row['文件类型']) || '其他',
       version: str(row['版本']) || 'A',
-      process: str(row['工序段']),
-      line: str(row['产线']),
       status: parseDocStatus(str(row['状态'])),
-      effectiveDate: toDateString(row['生效日期']),
-      reviewDate: toDateString(row['复审日期']),
+      tags: splitTags(
+        str(row['标签']) ||
+          [str(row['工序段']) ? `工序:${str(row['工序段'])}` : '', str(row['产线']) ? `产线:${str(row['产线'])}` : '']
+            .filter(Boolean)
+            .join('、'),
+      ),
       filePath: str(row['文件路径']),
       notes: str(row['备注']),
     }))
@@ -260,7 +259,6 @@ export interface WeeklyReportExportData {
   closedIssues: Issue[]
   completedTasks: Task[]
   overdueIssues: Issue[]
-  expiringDocs: ProcessDocument[]
   highlights: string
   nextPlan: string
 }
@@ -275,7 +273,6 @@ export async function exportWeeklyReport(data: WeeklyReportExportData): Promise<
     ['关闭问题', data.closedIssues.length],
     ['完成待办', data.completedTasks.length],
     ['超期未关闭问题', data.overdueIssues.length],
-    ['即将到期文件', data.expiringDocs.length],
     ['', ''],
     ['本周重点', data.highlights],
     ['下周计划', data.nextPlan],
@@ -313,20 +310,13 @@ export async function exportWeeklyReport(data: WeeklyReportExportData): Promise<
   XLSX.utils.book_append_sheet(workbook, makeSheet(taskRows, [40, 8, 12, 30]), '本周完成待办')
 
   const riskRows = [
-    ['类型', '名称/编号', '责任人', '截止/复审日期', '状态'],
+    ['类型', '名称/编号', '责任人', '截止日期', '状态'],
     ...data.overdueIssues.map((issue) => [
       '超期问题',
       `${issue.code} ${issue.title}`,
       issue.owner ?? '',
       formatDate(issue.dueDate),
       ISSUE_STATUS_LABELS[issue.status],
-    ]),
-    ...data.expiringDocs.map((doc) => [
-      '文件到期',
-      `${doc.code} ${doc.name}`,
-      '',
-      formatDate(doc.reviewDate),
-      DOC_STATUS_LABELS[doc.status],
     ]),
   ]
   XLSX.utils.book_append_sheet(workbook, makeSheet(riskRows, [12, 40, 12, 14, 10]), '风险与到期')

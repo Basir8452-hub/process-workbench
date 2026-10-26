@@ -44,10 +44,13 @@ import {
   ISSUE_STATUS_FLOW,
   ISSUE_STATUS_LABELS,
   ISSUE_STATUS_OPTIONS,
+  ROOT_CAUSE_CATEGORY_LABELS,
+  ROOT_CAUSE_CATEGORY_OPTIONS,
 } from '../constants'
 import { useAppStore } from '../store/AppStore'
-import type { Issue, IssueLog, KnowledgeItem } from '../types'
+import type { Issue, IssueLog, KnowledgeItem, Priority, RootCauseCategory, Task } from '../types'
 import { dueLabel, formatDate, isOverdue, today } from '../utils/date'
+import { blocksToText } from '../utils/knowledge'
 import {
   downloadIssueTemplate,
   exportIssues,
@@ -61,6 +64,7 @@ interface IssueFormValues {
   product?: string
   line?: string
   process?: string
+  batchNo?: string
   severity: Issue['severity']
   status: Issue['status']
   owner?: string
@@ -71,6 +75,7 @@ interface IssueFormValues {
   description?: string
   containment?: string
   rootCause?: string
+  rootCauseCategory?: RootCauseCategory
   permanentAction?: string
   verification?: string
   isRepeat?: boolean
@@ -96,8 +101,30 @@ export function IssuesPage({ createSignal }: { createSignal: number }) {
   const [statusFilter, setStatusFilter] = useState('open')
   const [severityFilter, setSeverityFilter] = useState('all')
   const [dimension, setDimension] = useState<'process' | 'department' | 'severity'>('process')
+  const [relatedTitle, setRelatedTitle] = useState('')
+  const [relatedItems, setRelatedItems] = useState<KnowledgeItem[]>([])
 
   const detailIssue = data.issues.find((issue) => issue.id === detailId) ?? null
+  const statusValue = Form.useWatch('status', issueForm) as Issue['status'] | undefined
+
+  const searchRelated = () => {
+    const title = issueForm.getFieldValue('title') as string | undefined
+    const keyword = title?.trim()
+    if (!keyword) {
+      message.info('请先填写问题标题，再检索同类失效')
+      return
+    }
+    const tokens = keyword
+      .toLowerCase()
+      .split(/[\s，。、,.;；]+/)
+      .filter((token) => token.length >= 2)
+    const hits = data.knowledge.filter((item) => {
+      const haystack = `${item.title} ${blocksToText(item.blocks)} ${item.tags.join(' ')}`.toLowerCase()
+      return tokens.some((token) => haystack.includes(token))
+    })
+    setRelatedTitle(keyword)
+    setRelatedItems(hits.slice(0, 8))
+  }
 
   const openCreate = () => {
     setEditing(null)
@@ -130,6 +157,7 @@ export function IssuesPage({ createSignal }: { createSignal: number }) {
       product: issue.product,
       line: issue.line,
       process: issue.process,
+      batchNo: issue.batchNo,
       severity: issue.severity,
       status: issue.status,
       owner: issue.owner,
@@ -140,11 +168,91 @@ export function IssuesPage({ createSignal }: { createSignal: number }) {
       description: issue.description,
       containment: issue.containment,
       rootCause: issue.rootCause,
+      rootCauseCategory: issue.rootCauseCategory,
       permanentAction: issue.permanentAction,
       verification: issue.verification,
       isRepeat: issue.isRepeat,
     })
     setModalOpen(true)
+  }
+
+  const severityToPriority = (severity: Issue['severity']): Priority =>
+    severity === 'stop' || severity === 'batch' ? 'high' : 'medium'
+
+  /** 关闭问题前的校验：根因分析与根因类别必填 */
+  const validateClose = (values: IssueFormValues, editingIssue: Issue | null): boolean => {
+    if (values.status !== 'closed') return true
+    const existingCategory = editingIssue?.rootCauseCategory ?? values.rootCauseCategory
+    if (!values.rootCause?.trim() || !existingCategory) {
+      message.warning('关闭问题前请先完成根因分析（5Why）并选择根因类别')
+      return false
+    }
+    return true
+  }
+
+  /** 有永久措施且无未完成关联待办时，自动派生成纠正待办 */
+  const ensureCorrectiveTask = (
+    draft: typeof data,
+    issue: Issue,
+    permanentAction: string,
+    now: string,
+  ): typeof data => {
+    const action = permanentAction.trim()
+    if (!action) return draft
+    const hasOpenTask = draft.tasks.some(
+      (task) => task.linkedType === 'issue' && task.linkedId === issue.id && !task.done,
+    )
+    if (hasOpenTask) return draft
+    const task: Task = {
+      id: uid('task'),
+      title: `【纠正】${issue.code} ${action.slice(0, 60)}`,
+      priority: severityToPriority(issue.severity),
+      dueDate: issue.dueDate,
+      done: false,
+      linkedType: 'issue',
+      linkedId: issue.id,
+      notes: '由问题永久措施自动生成',
+      createdAt: now,
+    }
+    return { ...draft, tasks: [task, ...draft.tasks] }
+  }
+
+  const buildKnowledge = (issue: Issue): KnowledgeItem => {
+    const now = new Date().toISOString()
+    const tags = [
+      issue.process,
+      issue.line,
+      issue.department,
+      issue.product,
+      issue.batchNo ? `批次:${issue.batchNo}` : '',
+      issue.rootCauseCategory
+        ? `根因:${ROOT_CAUSE_CATEGORY_LABELS[issue.rootCauseCategory]}`
+        : '',
+    ].filter((value): value is string => Boolean(value))
+    const blocks: KnowledgeItem['blocks'] = [
+      {
+        type: 'text',
+        text: [
+          `问题编号：${issue.code}`,
+          `问题现象：${issue.description || '未填写'}`,
+          `临时措施：${issue.containment || '未填写'}`,
+          `根因分析：${issue.rootCause || '未填写'}`,
+          `根因类别：${issue.rootCauseCategory ? ROOT_CAUSE_CATEGORY_LABELS[issue.rootCauseCategory] : '未填写'}`,
+          `永久措施：${issue.permanentAction || '未填写'}`,
+          `验证结果：${issue.verification || '未填写'}`,
+        ].join('\n\n'),
+      },
+    ]
+    return {
+      id: uid('knowledge'),
+      title: `【案例】${issue.title}`,
+      type: 'case',
+      tags,
+      blocks,
+      sourceIssueId: issue.id,
+      createdAt: now,
+      updatedAt: now,
+    }
   }
 
   const handleSubmit = async () => {
@@ -154,45 +262,16 @@ export function IssuesPage({ createSignal }: { createSignal: number }) {
     const dueDate = values.dueDate?.format('YYYY-MM-DD')
     const closedDate = values.closedDate?.format('YYYY-MM-DD')
 
+    if (!validateClose(values, editing)) return
+
     if (editing) {
-      mutate((draft) => ({
-        ...draft,
-        issues: draft.issues.map((issue) =>
-          issue.id === editing.id
-            ? {
-                ...issue,
-                title: values.title.trim(),
-                product: values.product?.trim(),
-                line: values.line?.trim(),
-                process: values.process?.trim(),
-                severity: values.severity,
-                status: values.status,
-                owner: values.owner?.trim(),
-                department: values.department?.trim(),
-                foundDate,
-                dueDate,
-                closedDate: values.status === 'closed' ? closedDate || today() : undefined,
-                description: values.description?.trim(),
-                containment: values.containment?.trim(),
-                rootCause: values.rootCause?.trim(),
-                permanentAction: values.permanentAction?.trim(),
-                verification: values.verification?.trim(),
-                isRepeat: values.isRepeat,
-                updatedAt: now,
-              }
-            : issue,
-        ),
-      }))
-      message.success('问题已更新')
-    } else {
-      const code = nextIssueCode(data.issues.map((issue) => issue.code))
-      const issue: Issue = {
-        id: uid('issue'),
-        code,
+      const updated: Issue = {
+        ...editing,
         title: values.title.trim(),
         product: values.product?.trim(),
         line: values.line?.trim(),
         process: values.process?.trim(),
+        batchNo: values.batchNo?.trim(),
         severity: values.severity,
         status: values.status,
         owner: values.owner?.trim(),
@@ -203,6 +282,49 @@ export function IssuesPage({ createSignal }: { createSignal: number }) {
         description: values.description?.trim(),
         containment: values.containment?.trim(),
         rootCause: values.rootCause?.trim(),
+        rootCauseCategory: values.rootCauseCategory,
+        permanentAction: values.permanentAction?.trim(),
+        verification: values.verification?.trim(),
+        isRepeat: values.isRepeat,
+        updatedAt: now,
+      }
+      mutate((draft) => {
+        let next: typeof draft = {
+          ...draft,
+          issues: draft.issues.map((issue) =>
+            issue.id === editing.id ? updated : issue,
+          ),
+        }
+        if (values.permanentAction?.trim() && values.status !== 'closed') {
+          next = ensureCorrectiveTask(next, updated, values.permanentAction, now)
+        }
+        if (values.status === 'closed') {
+          next = { ...next, knowledge: [buildKnowledge(updated), ...next.knowledge] }
+        }
+        return next
+      })
+      message.success('问题已更新')
+    } else {
+      const code = nextIssueCode(data.issues.map((issue) => issue.code))
+      const issue: Issue = {
+        id: uid('issue'),
+        code,
+        title: values.title.trim(),
+        product: values.product?.trim(),
+        line: values.line?.trim(),
+        process: values.process?.trim(),
+        batchNo: values.batchNo?.trim(),
+        severity: values.severity,
+        status: values.status,
+        owner: values.owner?.trim(),
+        department: values.department?.trim(),
+        foundDate,
+        dueDate,
+        closedDate: values.status === 'closed' ? closedDate || today() : undefined,
+        description: values.description?.trim(),
+        containment: values.containment?.trim(),
+        rootCause: values.rootCause?.trim(),
+        rootCauseCategory: values.rootCauseCategory,
         permanentAction: values.permanentAction?.trim(),
         verification: values.verification?.trim(),
         isRepeat: values.isRepeat,
@@ -217,11 +339,20 @@ export function IssuesPage({ createSignal }: { createSignal: number }) {
         owner: issue.owner,
         createdAt: now,
       }
-      mutate((draft) => ({
-        ...draft,
-        issues: [issue, ...draft.issues],
-        issueLogs: [log, ...draft.issueLogs],
-      }))
+      mutate((draft) => {
+        let next: typeof draft = {
+          ...draft,
+          issues: [issue, ...draft.issues],
+          issueLogs: [log, ...draft.issueLogs],
+        }
+        if (values.permanentAction?.trim() && values.status !== 'closed') {
+          next = ensureCorrectiveTask(next, issue, values.permanentAction, now)
+        }
+        if (values.status === 'closed') {
+          next = { ...next, knowledge: [buildKnowledge(issue), ...next.knowledge] }
+        }
+        return next
+      })
       message.success(`问题 ${code} 已创建`)
     }
     setModalOpen(false)
@@ -229,30 +360,44 @@ export function IssuesPage({ createSignal }: { createSignal: number }) {
 
   const setStatus = (issue: Issue, status: Issue['status'], actionLabel: string) => {
     const now = new Date().toISOString()
-    mutate((draft) => ({
-      ...draft,
-      issues: draft.issues.map((item) =>
-        item.id === issue.id
-          ? {
-              ...item,
-              status,
-              closedDate: status === 'closed' ? today() : undefined,
-              updatedAt: now,
-            }
-          : item,
-      ),
-      issueLogs: [
-        {
-          id: uid('log'),
-          issueId: issue.id,
-          date: today(),
-          action: actionLabel,
-          owner: issue.owner,
-          createdAt: now,
-        },
-        ...draft.issueLogs,
-      ],
-    }))
+    if (status === 'closed') {
+      if (!issue.rootCause?.trim() || !issue.rootCauseCategory) {
+        message.warning('关闭前请先完成根因分析（5Why）并选择根因类别')
+        return
+      }
+    }
+    const updated: Issue = {
+      ...issue,
+      status,
+      closedDate: status === 'closed' ? today() : undefined,
+      updatedAt: now,
+    }
+    mutate((draft) => {
+      let next: typeof draft = {
+        ...draft,
+        issues: draft.issues.map((item) => (item.id === issue.id ? updated : item)),
+        issueLogs: [
+          {
+            id: uid('log'),
+            issueId: issue.id,
+            date: today(),
+            action: actionLabel,
+            owner: issue.owner,
+            createdAt: now,
+          },
+          ...draft.issueLogs,
+        ],
+      }
+      if (status === 'closed') {
+        const alreadyDeposited = draft.knowledge.some(
+          (item) => item.sourceIssueId === issue.id,
+        )
+        if (!alreadyDeposited) {
+          next = { ...next, knowledge: [buildKnowledge(updated), ...next.knowledge] }
+        }
+      }
+      return next
+    })
     message.success(actionLabel)
   }
 
@@ -302,27 +447,7 @@ export function IssuesPage({ createSignal }: { createSignal: number }) {
       message.warning('这个问题已经沉淀过案例了')
       return
     }
-    const now = new Date().toISOString()
-    const tags = [issue.process, issue.line, issue.department, issue.product].filter(
-      (value): value is string => Boolean(value),
-    )
-    const item: KnowledgeItem = {
-      id: uid('knowledge'),
-      title: `【案例】${issue.title}`,
-      type: 'case',
-      tags,
-      content: [
-        `问题编号：${issue.code}`,
-        `问题现象：${issue.description || '未填写'}`,
-        `临时措施：${issue.containment || '未填写'}`,
-        `根因分析：${issue.rootCause || '未填写'}`,
-        `永久措施：${issue.permanentAction || '未填写'}`,
-        `验证结果：${issue.verification || '未填写'}`,
-      ].join('\n\n'),
-      sourceIssueId: issue.id,
-      createdAt: now,
-      updatedAt: now,
-    }
+    const item = buildKnowledge(issue)
     mutate((draft) => ({ ...draft, knowledge: [item, ...draft.knowledge] }))
     message.success('已沉淀到个人知识库')
   }
@@ -351,6 +476,7 @@ export function IssuesPage({ createSignal }: { createSignal: number }) {
           product: row.product,
           line: row.line,
           process: row.process,
+          batchNo: row.batchNo,
           severity: row.severity ?? 'normal',
           status: row.status ?? 'new',
           owner: row.owner,
@@ -361,6 +487,7 @@ export function IssuesPage({ createSignal }: { createSignal: number }) {
           description: row.description,
           containment: row.containment,
           rootCause: row.rootCause,
+          rootCauseCategory: row.rootCauseCategory,
           permanentAction: row.permanentAction,
           verification: row.verification,
           isRepeat: row.isRepeat ?? false,
@@ -489,9 +616,21 @@ export function IssuesPage({ createSignal }: { createSignal: number }) {
           <div className="text-strong">{issue.title}</div>
           <div className="table-subtext">
             {[issue.product, issue.line, issue.process].filter(Boolean).join(' · ') || '未填写产线/工序'}
+            {issue.batchNo ? ` · ${issue.batchNo}` : ''}
           </div>
         </div>
       ),
+    },
+    {
+      title: '根因类别',
+      dataIndex: 'rootCauseCategory',
+      width: 150,
+      render: (_, issue) =>
+        issue.rootCauseCategory ? (
+          ROOT_CAUSE_CATEGORY_LABELS[issue.rootCauseCategory]
+        ) : (
+          <span className="text-muted">{issue.status === 'closed' ? '缺失' : '未填'}</span>
+        ),
     },
     {
       title: '严重度',
@@ -696,6 +835,11 @@ export function IssuesPage({ createSignal }: { createSignal: number }) {
             name="title"
             label="问题标题"
             rules={[{ required: true, message: '请输入问题标题' }]}
+            extra={
+              <Button type="link" size="small" style={{ padding: 0 }} onClick={searchRelated}>
+                检索知识库中同类失效
+              </Button>
+            }
           >
             <Input placeholder="用一句话描述问题现象" maxLength={120} />
           </Form.Item>
@@ -713,6 +857,27 @@ export function IssuesPage({ createSignal }: { createSignal: number }) {
             <Col span={8}>
               <Form.Item name="process" label="工序段">
                 <Input placeholder="例如：焊接" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={12}>
+            <Col span={12}>
+              <Form.Item name="batchNo" label="批次号">
+                <Input placeholder="例如：B20260101-001（可选）" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="rootCauseCategory"
+                label="根因类别"
+                extra={statusValue === 'closed' ? '关闭前必选' : undefined}
+              >
+                <Select
+                  allowClear
+                  placeholder={statusValue === 'closed' ? '关闭问题前请选择根因类别' : '选择根因类别（关闭前必填）'}
+                  options={ROOT_CAUSE_CATEGORY_OPTIONS}
+                  showSearch
+                />
               </Form.Item>
             </Col>
           </Row>
@@ -837,6 +1002,7 @@ export function IssuesPage({ createSignal }: { createSignal: number }) {
               <Descriptions.Item label="产品/机型">{detailIssue.product || '-'}</Descriptions.Item>
               <Descriptions.Item label="产线">{detailIssue.line || '-'}</Descriptions.Item>
               <Descriptions.Item label="工序段">{detailIssue.process || '-'}</Descriptions.Item>
+              <Descriptions.Item label="批次号">{detailIssue.batchNo || '-'}</Descriptions.Item>
               <Descriptions.Item label="责任人">{detailIssue.owner || '-'}</Descriptions.Item>
               <Descriptions.Item label="责任部门">{detailIssue.department || '-'}</Descriptions.Item>
               <Descriptions.Item label="发现日期">{formatDate(detailIssue.foundDate)}</Descriptions.Item>
@@ -845,6 +1011,11 @@ export function IssuesPage({ createSignal }: { createSignal: number }) {
               </Descriptions.Item>
               <Descriptions.Item label="实际关闭日">
                 {formatDate(detailIssue.closedDate)}
+              </Descriptions.Item>
+              <Descriptions.Item label="根因类别">
+                {detailIssue.rootCauseCategory
+                  ? ROOT_CAUSE_CATEGORY_LABELS[detailIssue.rootCauseCategory]
+                  : '-'}
               </Descriptions.Item>
             </Descriptions>
 
@@ -919,6 +1090,34 @@ export function IssuesPage({ createSignal }: { createSignal: number }) {
             </div>
           </div>
         ) : null}
+      </Drawer>
+
+      <Drawer
+        title={`同类失效检索：${relatedTitle || '…'}`}
+        size={560}
+        open={relatedItems.length > 0}
+        onClose={() => setRelatedItems([])}
+      >
+        {relatedItems.length === 0 ? (
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="输入标题后检索" />
+        ) : (
+          <div className="detail-stack">
+            {relatedItems.map((item) => (
+              <Card key={item.id} size="small" variant="borderless" className="related-card">
+                <div className="text-strong">{item.title}</div>
+                <div className="knowledge-excerpt">{blocksToText(item.blocks).slice(0, 160)}</div>
+                <Space size={4} wrap>
+                  {item.tags.slice(0, 5).map((tag) => (
+                    <Tag key={tag}>{tag}</Tag>
+                  ))}
+                </Space>
+              </Card>
+            ))}
+            <div className="table-subtext">
+              根据标题关键词在知识库中匹配，可参考历史案例的根因与措施
+            </div>
+          </div>
+        )}
       </Drawer>
     </div>
   )

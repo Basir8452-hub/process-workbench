@@ -39,4 +39,79 @@ describe('normalizeStore（数据兼容层）', () => {
     const normalized = normalizeStore(undefined)
     expect(Object.keys(normalized).sort()).toEqual(Object.keys(empty).sort())
   })
+
+  it('v0.7.0 迁移：旧文件台账 process/line 并入 tags', () => {
+    const store = normalizeStore({
+      documents: [
+        {
+          id: 'doc1',
+          code: 'SOP-001',
+          name: '焊接 SOP',
+          type: 'SOP',
+          version: 'A',
+          status: 'controlled',
+          process: '焊接',
+          line: 'SMT-01',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+    } as never)
+    expect(store.documents[0].tags).toEqual(['工序:焊接', '产线:SMT-01'])
+  })
+
+  it('v0.7.0 迁移：已有 tags 的文件不重复迁移', () => {
+    const store = normalizeStore({
+      documents: [
+        {
+          id: 'doc2',
+          code: 'SOP-002',
+          name: '装配 SOP',
+          type: 'SOP',
+          version: 'A',
+          status: 'controlled',
+          tags: ['工序:装配', '储能产品'],
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+    } as never)
+    expect(store.documents[0].tags).toEqual(['工序:装配', '储能产品'])
+  })
+
+  it('v0.7.0 迁移：旧知识 content 字符串 → 单个 text 块', () => {
+    const store = normalizeStore({
+      knowledge: [
+        {
+          id: 'k1',
+          title: '虚焊排查',
+          type: 'case',
+          tags: ['焊接'],
+          content: '先查参数再查工装',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+    } as never)
+    expect(store.knowledge[0].blocks).toEqual([{ type: 'text', text: '先查参数再查工装' }])
+  })
+
+  it('v0.7.0 迁移：问题补齐 batchNo/rootCauseCategory 空值', () => {
+    const store = normalizeStore({
+      issues: [
+        {
+          id: 'i1',
+          code: 'Q-20260101-001',
+          title: '虚焊',
+          severity: 'normal',
+          status: 'analyzing',
+          foundDate: '2026-01-01',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+    } as never)
+    expect(store.issues[0].batchNo).toBeUndefined()
+    expect(store.issues[0].rootCauseCategory).toBeUndefined()
+  })
 })

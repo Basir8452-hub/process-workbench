@@ -12,7 +12,6 @@ import {
   Button,
   Card,
   Col,
-  DatePicker,
   Dropdown,
   Form,
   Input,
@@ -27,18 +26,14 @@ import {
   Tag,
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import dayjs, { type Dayjs } from 'dayjs'
+import dayjs from 'dayjs'
 import { useEffect, useMemo, useState } from 'react'
 import { DocStatusTag } from '../components/Tags'
-import {
-  DOC_STATUS_OPTIONS,
-  DOC_TYPE_OPTIONS,
-  DOC_TYPES,
-} from '../constants'
+import { DOC_STATUS_OPTIONS, DOC_TYPE_OPTIONS, DOC_TYPES } from '../constants'
 import { openExcel } from '../services/storage'
 import { useAppStore } from '../store/AppStore'
 import type { ProcessDocument } from '../types'
-import { daysUntil, formatDate, isOverdue, today } from '../utils/date'
+import { formatDate } from '../utils/date'
 import {
   downloadDocumentTemplate,
   exportDocuments,
@@ -51,11 +46,8 @@ interface DocFormValues {
   name: string
   type: string
   version: string
-  process?: string
-  line?: string
+  tags?: string[]
   status: ProcessDocument['status']
-  effectiveDate?: Dayjs
-  reviewDate?: Dayjs
   filePath?: string
   notes?: string
 }
@@ -68,18 +60,18 @@ export function DocumentsPage({ createSignal }: { createSignal: number }) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState('all')
+  const [tagFilter, setTagFilter] = useState<string[]>([])
 
-  const warningDays = data.settings.expiryWarningDays ?? 30
+  const allTags = useMemo(() => {
+    const set = new Set<string>()
+    data.documents.forEach((doc) => doc.tags.forEach((tag) => set.add(tag)))
+    return [...set].sort((a, b) => a.localeCompare(b, 'zh-CN'))
+  }, [data.documents])
 
   const openCreate = () => {
     setEditing(null)
     form.resetFields()
-    form.setFieldsValue({
-      type: 'SOP',
-      version: 'A',
-      status: 'controlled',
-      effectiveDate: dayjs(),
-    })
+    form.setFieldsValue({ type: 'SOP', version: 'A', status: 'controlled', tags: [] })
     setModalOpen(true)
   }
 
@@ -95,11 +87,8 @@ export function DocumentsPage({ createSignal }: { createSignal: number }) {
       name: doc.name,
       type: doc.type,
       version: doc.version,
-      process: doc.process,
-      line: doc.line,
+      tags: doc.tags,
       status: doc.status,
-      effectiveDate: doc.effectiveDate ? dayjs(doc.effectiveDate) : undefined,
-      reviewDate: doc.reviewDate ? dayjs(doc.reviewDate) : undefined,
       filePath: doc.filePath,
       notes: doc.notes,
     })
@@ -114,11 +103,8 @@ export function DocumentsPage({ createSignal }: { createSignal: number }) {
       name: values.name.trim(),
       type: values.type,
       version: values.version.trim(),
-      process: values.process?.trim(),
-      line: values.line?.trim(),
+      tags: values.tags ?? [],
       status: values.status,
-      effectiveDate: values.effectiveDate?.format('YYYY-MM-DD'),
-      reviewDate: values.reviewDate?.format('YYYY-MM-DD'),
       filePath: values.filePath?.trim(),
       notes: values.notes?.trim(),
       updatedAt: now,
@@ -182,11 +168,8 @@ export function DocumentsPage({ createSignal }: { createSignal: number }) {
           name: row.name ?? '未命名文件',
           type: row.type || '其他',
           version: row.version || 'A',
-          process: row.process,
-          line: row.line,
+          tags: row.tags ?? [],
           status: row.status ?? 'draft',
-          effectiveDate: row.effectiveDate || undefined,
-          reviewDate: row.reviewDate || undefined,
           filePath: row.filePath,
           notes: row.notes,
           createdAt: now,
@@ -216,7 +199,7 @@ export function DocumentsPage({ createSignal }: { createSignal: number }) {
       .filter((doc) => {
         if (search.trim()) {
           const keyword = search.trim().toLowerCase()
-          const text = [doc.code, doc.name, doc.process, doc.line, doc.filePath]
+          const text = [doc.code, doc.name, doc.tags.join(' '), doc.filePath]
             .filter(Boolean)
             .join(' ')
             .toLowerCase()
@@ -224,30 +207,18 @@ export function DocumentsPage({ createSignal }: { createSignal: number }) {
         }
         if (statusFilter !== 'all' && doc.status !== statusFilter) return false
         if (typeFilter !== 'all' && doc.type !== typeFilter) return false
+        if (tagFilter.length > 0 && !tagFilter.every((tag) => doc.tags.includes(tag))) return false
         return true
       })
-      .sort((a, b) => {
-        const aDays = daysUntil(a.reviewDate)
-        const bDays = daysUntil(b.reviewDate)
-        if (aDays === null && bDays === null) return b.updatedAt.localeCompare(a.updatedAt)
-        if (aDays === null) return 1
-        if (bDays === null) return -1
-        return aDays - bDays
-      })
-  }, [data.documents, search, statusFilter, typeFilter])
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+  }, [data.documents, search, statusFilter, typeFilter, tagFilter])
 
   const controlledCount = data.documents.filter((doc) => doc.status === 'controlled').length
-  const expiringCount = data.documents.filter((doc) => {
-    if (doc.status === 'obsolete') return false
-    const days = daysUntil(doc.reviewDate)
-    return days !== null && days >= 0 && days <= warningDays
-  }).length
-  const reviewOverdueCount = data.documents.filter(
-    (doc) => doc.status !== 'obsolete' && isOverdue(doc.reviewDate),
-  ).length
+  const obsoleteCount = data.documents.filter((doc) => doc.status === 'obsolete').length
   const draftCount = data.documents.filter(
     (doc) => doc.status === 'draft' || doc.status === 'reviewing',
   ).length
+  const typeCount = data.documents.length
 
   const columns: ColumnsType<ProcessDocument> = [
     {
@@ -276,14 +247,23 @@ export function DocumentsPage({ createSignal }: { createSignal: number }) {
       render: (value: string) => <span className="version-badge">{value}</span>,
     },
     {
-      title: '工序 / 产线',
-      width: 140,
-      render: (_, doc) => (
-        <div>
-          <div>{doc.process || '-'}</div>
-          <div className="table-subtext">{doc.line || '未指定产线'}</div>
-        </div>
-      ),
+      title: '归档标签',
+      dataIndex: 'tags',
+      render: (_, doc) =>
+        doc.tags.length > 0 ? (
+          <div className="doc-tags">
+            {doc.tags.slice(0, 4).map((tag) => (
+              <Tag key={tag} style={{ marginInlineEnd: 6 }}>
+                {tag}
+              </Tag>
+            ))}
+            {doc.tags.length > 4 ? (
+              <span className="table-subtext">+{doc.tags.length - 4}</span>
+            ) : null}
+          </div>
+        ) : (
+          <span className="text-muted">未打标签</span>
+        ),
     },
     {
       title: '状态',
@@ -292,35 +272,10 @@ export function DocumentsPage({ createSignal }: { createSignal: number }) {
       render: (_, doc) => <DocStatusTag value={doc.status} />,
     },
     {
-      title: '生效日期',
-      dataIndex: 'effectiveDate',
+      title: '登记时间',
+      dataIndex: 'updatedAt',
       width: 110,
-      render: (value?: string) => formatDate(value),
-    },
-    {
-      title: '复审日期',
-      dataIndex: 'reviewDate',
-      width: 150,
-      render: (_, doc) => {
-        if (!doc.reviewDate) return <span className="text-muted">未设置</span>
-        const days = daysUntil(doc.reviewDate)
-        const overdue = days !== null && days < 0 && doc.status !== 'obsolete'
-        const soon = days !== null && days >= 0 && days <= warningDays
-        return (
-          <div>
-            <div className={overdue ? 'text-danger' : ''}>{formatDate(doc.reviewDate)}</div>
-            <div
-              className={`table-subtext ${overdue ? 'text-danger' : soon ? 'text-warning' : ''}`}
-            >
-              {overdue
-                ? `已逾期 ${Math.abs(days ?? 0)} 天`
-                : days === 0
-                  ? '今天复审'
-                  : `${days} 天后复审`}
-            </div>
-          </div>
-        )
-      },
+      render: (value: string) => formatDate(value),
     },
     {
       title: '操作',
@@ -341,32 +296,22 @@ export function DocumentsPage({ createSignal }: { createSignal: number }) {
       <Row gutter={16}>
         <Col xs={12} md={6}>
           <Card variant="borderless" className="stat-card">
+            <Statistic title="文件总数" value={typeCount} suffix="份" />
+          </Card>
+        </Col>
+        <Col xs={12} md={6}>
+          <Card variant="borderless" className="stat-card">
             <Statistic title="受控文件" value={controlledCount} suffix="份" />
           </Card>
         </Col>
         <Col xs={12} md={6}>
           <Card variant="borderless" className="stat-card">
-            <Statistic
-              title={`${warningDays} 天内复审`}
-              value={expiringCount}
-              suffix="份"
-              styles={{ content: { color: expiringCount > 0 ? '#d97706' : undefined } }}
-            />
-          </Card>
-        </Col>
-        <Col xs={12} md={6}>
-          <Card variant="borderless" className="stat-card">
-            <Statistic
-              title="复审已逾期"
-              value={reviewOverdueCount}
-              suffix="份"
-              styles={{ content: { color: reviewOverdueCount > 0 ? '#dc2626' : undefined } }}
-            />
-          </Card>
-        </Col>
-        <Col xs={12} md={6}>
-          <Card variant="borderless" className="stat-card">
             <Statistic title="草稿 / 审批中" value={draftCount} suffix="份" />
+          </Card>
+        </Col>
+        <Col xs={12} md={6}>
+          <Card variant="borderless" className="stat-card">
+            <Statistic title="作废归档" value={obsoleteCount} suffix="份" />
           </Card>
         </Col>
       </Row>
@@ -377,7 +322,7 @@ export function DocumentsPage({ createSignal }: { createSignal: number }) {
             <Input
               allowClear
               prefix={<SearchOutlined />}
-              placeholder="搜索文件编号、名称、工序"
+              placeholder="搜索编号、名称、标签、路径"
               style={{ width: 280 }}
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -393,6 +338,16 @@ export function DocumentsPage({ createSignal }: { createSignal: number }) {
               onChange={setTypeFilter}
               style={{ width: 140 }}
               options={[{ value: 'all', label: '全部类型' }, ...DOC_TYPE_OPTIONS]}
+            />
+            <Select
+              mode="multiple"
+              allowClear
+              placeholder="按标签筛选（可多选）"
+              style={{ minWidth: 200, maxWidth: 360 }}
+              value={tagFilter}
+              onChange={setTagFilter}
+              options={allTags.map((tag) => ({ value: tag, label: tag }))}
+              maxTagCount="responsive"
             />
           </Space>
           <Space>
@@ -423,9 +378,6 @@ export function DocumentsPage({ createSignal }: { createSignal: number }) {
           columns={columns}
           dataSource={filtered}
           scroll={{ x: 1000 }}
-          rowClassName={(doc) =>
-            doc.status !== 'obsolete' && isOverdue(doc.reviewDate) ? 'row-overdue' : ''
-          }
           pagination={{ pageSize: 10, showSizeChanger: false }}
           locale={{ emptyText: '暂无工艺文件' }}
         />
@@ -478,30 +430,17 @@ export function DocumentsPage({ createSignal }: { createSignal: number }) {
               </Form.Item>
             </Col>
             <Col span={6}>
-              <Form.Item name="process" label="工序段">
-                <Input placeholder="例如：焊接" />
-              </Form.Item>
-            </Col>
-            <Col span={6}>
-              <Form.Item name="line" label="产线">
-                <Input placeholder="例如：SMT-01" />
-              </Form.Item>
-            </Col>
-          </Row>
-          <Row gutter={12}>
-            <Col span={8}>
               <Form.Item name="status" label="状态" rules={[{ required: true }]}>
                 <Select options={DOC_STATUS_OPTIONS} />
               </Form.Item>
             </Col>
-            <Col span={8}>
-              <Form.Item name="effectiveDate" label="生效日期">
-                <DatePicker style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="reviewDate" label="下次复审日期">
-                <DatePicker style={{ width: '100%' }} />
+            <Col span={6}>
+              <Form.Item name="tags" label="归档标签">
+                <Select
+                  mode="tags"
+                  placeholder="输入后回车，例如：工序:焊接、产线:SMT-01"
+                  tokenSeparators={[',', '，']}
+                />
               </Form.Item>
             </Col>
           </Row>

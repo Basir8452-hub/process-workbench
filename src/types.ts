@@ -21,6 +21,17 @@ export interface Task {
 
 export type IssueSeverity = 'stop' | 'batch' | 'normal'
 export type IssueStatus = 'new' | 'analyzing' | 'action' | 'verifying' | 'closed' | 'onhold'
+/** 根因类别（关闭前必填） */
+export type RootCauseCategory =
+  | 'man'
+  | 'machine'
+  | 'material'
+  | 'method'
+  | 'measure'
+  | 'environment'
+  | 'management'
+  | 'design'
+  | 'other'
 
 export interface Issue {
   id: ID
@@ -29,6 +40,8 @@ export interface Issue {
   product?: string
   line?: string
   process?: string
+  /** 批次号（v0.7.0 新增） */
+  batchNo?: string
   severity: IssueSeverity
   status: IssueStatus
   owner?: string
@@ -39,6 +52,8 @@ export interface Issue {
   description?: string
   containment?: string
   rootCause?: string
+  /** 根因类别（v0.7.0 新增，关闭前必填） */
+  rootCauseCategory?: RootCauseCategory
   permanentAction?: string
   verification?: string
   isRepeat?: boolean
@@ -64,16 +79,20 @@ export interface ProcessDocument {
   name: string
   type: string
   version: string
-  process?: string
-  line?: string
+  /** 归档标签（原工序/产线字段迁移而来，如「工序:焊接」「产线:SMT-01」） */
+  tags: string[]
   status: DocumentStatus
-  effectiveDate?: string
-  reviewDate?: string
   filePath?: string
   notes?: string
   createdAt: string
   updatedAt: string
 }
+
+/** 知识内容块：同一卡片内多格式混排 */
+export type ContentBlock =
+  | { type: 'text'; text: string }
+  | { type: 'image'; dataUrl: string }
+  | { type: 'table'; headers: string[]; rows: string[][] }
 
 export type KnowledgeType = 'case' | 'standard' | 'template' | 'experience'
 
@@ -82,7 +101,8 @@ export interface KnowledgeItem {
   title: string
   type: KnowledgeType
   tags: string[]
-  content: string
+  /** 内容块数组（v0.7.0 起）；旧数据 content 字符串自动迁移为单个 text 块 */
+  blocks: ContentBlock[]
   sourceIssueId?: ID
   createdAt: string
   updatedAt: string

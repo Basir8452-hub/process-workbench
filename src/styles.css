@@ -2079,3 +2079,86 @@ tr.task-row-completing > td {
   height: 100%;
 }
 
+/* ============ v0.7.0 文件台账标签 ============ */
+
+.doc-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-top: 2px;
+}
+
+/* ============ v0.7.0 知识库多格式块 ============ */
+
+.knowledge-block-text {
+  font-size: 14px;
+  color: #334155;
+  line-height: 1.9;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.knowledge-block-image {
+  margin: 8px 0;
+}
+
+.knowledge-block-image img {
+  max-width: 100%;
+  max-height: 420px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  display: block;
+}
+
+.knowledge-editor {
+  padding: 14px 16px;
+  border: 1px solid #eef2f7;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.knowledge-editor-title {
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.knowledge-editor-blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.knowledge-editor-block {
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.knowledge-editor-block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.table-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ============ v0.7.0 同类失效检索卡片 ============ */
+
+.related-card {
+  border-radius: 10px;
+  transition: box-shadow 0.2s ease;
+}
+
+.related-card:hover {
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+}
+

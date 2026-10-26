@@ -1,9 +1,13 @@
 import type {
+  ContentBlock,
   DocumentStatus,
   IssueSeverity,
   IssueStatus,
+  KnowledgeItem,
   KnowledgeType,
   Priority,
+  ProcessDocument,
+  RootCauseCategory,
   StoreData,
 } from './types'
 
@@ -63,6 +67,22 @@ export const ISSUE_STATUS_COLORS: Record<IssueStatus, string> = {
 }
 
 export const ISSUE_STATUS_FLOW: IssueStatus[] = ['new', 'analyzing', 'action', 'verifying', 'closed']
+
+export const ROOT_CAUSE_CATEGORY_LABELS: Record<RootCauseCategory, string> = {
+  man: '人（操作/技能/意识）',
+  machine: '机（设备/工装/刀具）',
+  material: '料（来料/物料）',
+  method: '法（工艺/方法/标准）',
+  measure: '测（量具/检测/监控）',
+  environment: '环（环境/温湿度/洁净度）',
+  management: '管理（流程/培训/监督）',
+  design: '设计（产品/工艺设计缺陷）',
+  other: '其他',
+}
+
+export const ROOT_CAUSE_CATEGORY_OPTIONS = (
+  Object.keys(ROOT_CAUSE_CATEGORY_LABELS) as RootCauseCategory[]
+).map((value) => ({ value, label: ROOT_CAUSE_CATEGORY_LABELS[value] }))
 
 export const DOC_STATUS_LABELS: Record<DocumentStatus, string> = {
   draft: '草稿',
@@ -141,5 +161,40 @@ export function createEmptyStore(): StoreData {
     settings: {
       expiryWarningDays: 30,
     },
+  }
+}
+
+/** 旧知识条目 content 字符串 → blocks 单 text 块 */
+export function knowledgeContentToBlocks(content?: string): ContentBlock[] {
+  const text = (content ?? '').trim()
+  return text ? [{ type: 'text', text }] : []
+}
+
+/** 旧文件台账 process/line 字段 → 归档标签（工序:xxx / 产线:xxx） */
+export function documentLegacyToTags(doc: {
+  process?: string
+  line?: string
+  tags?: string[]
+}): string[] {
+  const tags = Array.isArray(doc.tags) ? [...doc.tags] : []
+  if (doc.process?.trim()) tags.push(`工序:${doc.process.trim()}`)
+  if (doc.line?.trim()) tags.push(`产线:${doc.line.trim()}`)
+  return [...new Set(tags.filter(Boolean))]
+}
+
+/** 数据迁移：兼容 v0.6.0 及更早的持久化数据 */
+export function migrateStore(input: StoreData): StoreData {
+  return {
+    ...input,
+    documents: (input.documents ?? []).map((doc) => {
+      const legacy = doc as ProcessDocument & { process?: string; line?: string }
+      if (Array.isArray(legacy.tags) && legacy.tags.length > 0) return legacy
+      return { ...legacy, tags: documentLegacyToTags(legacy) }
+    }),
+    knowledge: (input.knowledge ?? []).map((item) => {
+      const legacy = item as KnowledgeItem & { content?: string }
+      if (Array.isArray(legacy.blocks) && legacy.blocks.length > 0) return legacy
+      return { ...legacy, blocks: knowledgeContentToBlocks(legacy.content) }
+    }),
   }
 }
