@@ -5,6 +5,7 @@ import type {
   ExcelOpenResult,
   FileResult,
   ImportStoreResult,
+  NewsCategory,
   NewsFeedItem,
   NewsFetchResult,
   RootCauseCategory,
@@ -42,8 +43,19 @@ export function normalizeStore(input: Partial<StoreData> | null | undefined): St
         }))
       : [],
     reports: Array.isArray(input.reports) ? input.reports : [],
-    newsArticles: Array.isArray(input.newsArticles) ? input.newsArticles : [],
-    newsDigests: Array.isArray(input.newsDigests) ? input.newsDigests : [],
+    dailyReports: Array.isArray(input.dailyReports) ? input.dailyReports : [],
+    newsArticles: Array.isArray(input.newsArticles)
+      ? input.newsArticles.map((article) => ({
+          ...article,
+          category: (article as { category?: NewsCategory }).category === 'ai' ? 'ai' : 'storage',
+        }))
+      : [],
+    newsDigests: Array.isArray(input.newsDigests)
+      ? input.newsDigests.map((digest) => ({
+          ...digest,
+          category: (digest as { category?: NewsCategory }).category === 'ai' ? 'ai' : 'storage',
+        }))
+      : [],
     toeflRecords: Array.isArray(input.toeflRecords) ? input.toeflRecords : [],
     settings: { ...empty.settings, ...(input.settings ?? {}) },
   }
@@ -162,6 +174,44 @@ export async function openExcel(): Promise<ExcelOpenResult> {
   const file = await pickFile('.xlsx,.xls')
   if (!file) return { canceled: true }
   return { canceled: false, buffer: await file.arrayBuffer(), name: file.name }
+}
+
+/** 保存文本类导出物（日报 .md/.txt、周报邮件 .eml） */
+export async function saveTextFile(payload: {
+  content: string
+  defaultName: string
+  filters?: { name: string; extensions: string[] }[]
+}): Promise<FileResult> {
+  if (window.workbench?.saveTextFile) {
+    return window.workbench.saveTextFile(payload)
+  }
+  downloadBlob(new Blob([payload.content], { type: 'text/plain;charset=utf-8' }), payload.defaultName)
+  return { canceled: false, path: payload.defaultName }
+}
+
+/** 复制文本到剪贴板，失败时回退到临时 textarea 方案 */
+export async function copyText(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text)
+      return true
+    }
+  } catch {
+    // 继续走回退方案
+  }
+  try {
+    const area = document.createElement('textarea')
+    area.value = text
+    area.style.position = 'fixed'
+    area.style.opacity = '0'
+    document.body.appendChild(area)
+    area.select()
+    const ok = document.execCommand('copy')
+    area.remove()
+    return ok
+  } catch {
+    return false
+  }
 }
 
 export async function getAppInfo(): Promise<AppInfo> {

@@ -622,7 +622,7 @@ tr.task-row-completing::before {
   background-image: linear-gradient(90deg, #86efac, #22c55e);
   background-repeat: no-repeat;
   background-size: 0% 100%;
-  animation: task-complete-sweep 0.5s ease forwards;
+  animation: task-complete-sweep 0.32s ease forwards;
   z-index: 2;
   pointer-events: none;
 }
@@ -645,13 +645,13 @@ tr.task-row-completing::after {
   color: #16a34a;
   box-shadow: 0 4px 14px rgba(22, 163, 74, 0.35);
   opacity: 0;
-  animation: task-check-bounce 0.45s ease 0.25s forwards;
+  animation: task-check-bounce 0.26s ease 0.06s forwards;
   z-index: 3;
   pointer-events: none;
 }
 
 tr.task-row-completing > td {
-  animation: task-complete-fade 0.4s ease 0.5s forwards;
+  animation: task-complete-fade 0.1s ease 0.32s forwards;
 }
 
 /* 操作列竖向排列：完成 / 编辑 / 删除按钮从上到下排布，压缩横向占用 */
@@ -2181,5 +2181,111 @@ tr.task-row-completing > td {
 
 .related-card:hover {
   box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+}
+
+/* ============ v0.9.0 日报与周报 ============ */
+
+.mail-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mail-preview-row {
+  display: flex;
+  gap: 12px;
+  color: #334155;
+  font-size: 13px;
+  line-height: 1.7;
+  word-break: break-all;
+}
+
+.mail-preview-label {
+  flex: none;
+  width: 56px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+/* ============ v0.9.0 待办建议 ============ */
+
+.suggest-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.suggest-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.suggest-title {
+  color: #1e293b;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.suggest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.suggest-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-inline-start: 0;
+  padding: 10px 12px;
+  border: 1px solid #eef2f7;
+  border-radius: 10px;
+  background: #fbfcfe;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.suggest-item:hover {
+  border-color: #bfdbfe;
+  background: #f0f7ff;
+}
+
+.suggest-item-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.suggest-item > .ant-tag {
+  flex: none;
+}
+
+.suggest-empty {
+  padding: 14px;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #94a3b8;
+  font-size: 12px;
+  text-align: center;
+}
+
+/* ============ v0.9.0 行业资讯主题分区 ============ */
+
+.news-section-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.news-section-tag {
+  margin-inline-end: 0;
+  padding: 3px 10px;
+  border-radius: 8px;
+  border-color: #dbeafe;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 12px;
 }
 

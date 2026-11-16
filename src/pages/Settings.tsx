@@ -49,6 +49,7 @@ import {
 interface SettingsFormValues {
   ownerName?: string
   department?: string
+  dailySheetName?: string
   expiryWarningDays: number
 }
 
@@ -122,16 +123,24 @@ export function SettingsPage() {
 
   const handleSave = async () => {
     const values = await form.validateFields()
+    const nextName = values.ownerName?.trim()
+    const nextDepartment = values.department?.trim()
+    const identityChanged =
+      nextName !== (data.settings.ownerName ?? '') ||
+      nextDepartment !== (data.settings.department ?? '')
     mutate((draft) => ({
       ...draft,
       settings: {
         ...draft.settings,
-        ownerName: values.ownerName?.trim(),
-        department: values.department?.trim(),
+        ownerName: nextName,
+        department: nextDepartment,
+        dailySheetName: values.dailySheetName?.trim(),
+        // 身份信息变化后需重新确认一次
+        identityConfirmedAt: identityChanged ? undefined : draft.settings.identityConfirmedAt,
         expiryWarningDays: values.expiryWarningDays,
       },
     }))
-    message.success('设置已保存')
+    message.success(identityChanged ? '设置已保存，请到「日报与周报」重新确认身份' : '设置已保存')
   }
 
   const handleSaveAI = async () => {
@@ -256,7 +265,7 @@ export function SettingsPage() {
             className="panel-card"
             title={
               <span className="card-title">
-                <SafetyCertificateOutlined /> 个人偏好
+                <SafetyCertificateOutlined /> 个人身份与偏好
               </span>
             }
           >
@@ -267,6 +276,7 @@ export function SettingsPage() {
               initialValues={{
                 ownerName: data.settings.ownerName,
                 department: data.settings.department,
+                dailySheetName: data.settings.dailySheetName,
                 expiryWarningDays: data.settings.expiryWarningDays ?? 30,
               }}
             >
@@ -275,6 +285,9 @@ export function SettingsPage() {
               </Form.Item>
               <Form.Item name="department" label="部门/岗位">
                 <Input placeholder="例如：工艺开发部 · 工艺开发工程师" maxLength={60} />
+              </Form.Item>
+              <Form.Item name="dailySheetName" label="日报表本人 sheet 名">
+                <Input placeholder="例如：20蔡晨潇" maxLength={30} />
               </Form.Item>
               <Form.Item
                 name="expiryWarningDays"
@@ -286,6 +299,10 @@ export function SettingsPage() {
               <Button type="primary" icon={<SaveOutlined />} onClick={handleSave}>
                 保存设置
               </Button>
+              <div className="settings-note">
+                日报与周报按这里的姓名和部门生成署名，日报行按 sheet 名提示粘贴位置；在工作台确认一次身份后，
+                后续默认沿用该身份，不再重复核验。修改姓名或部门后需要重新确认。
+              </div>
             </Form>
           </Card>
         </Col>
@@ -359,7 +376,7 @@ export function SettingsPage() {
           <div>
             <div className="settings-switch-title">关闭窗口时最小化到系统托盘</div>
             <div className="settings-note">
-              开启后关闭主窗口不会退出应用，程序常驻系统托盘，9:00 自动生成储能日报不依赖窗口打开；
+              开启后关闭主窗口不会退出应用，程序常驻系统托盘，9:00 自动生成行业资讯日报不依赖窗口打开；
               需要彻底退出时，右键托盘图标选择「退出」。
             </div>
           </div>

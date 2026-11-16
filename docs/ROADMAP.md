@@ -23,6 +23,7 @@
 | `0.6.0` | 待办行高三态统一（2026-10-26）：「未完成 / 动画播放中 / 已完成」行高一致，点击完成不再跳动——操作列三态等高占位，完成按钮 40px 位置保留，已完成行显示等大灰色「已完成」状态图标 |
 | `0.7.0` | 四项集中落地（2026-10-26）：①问题闭环升级「工艺问题全生命周期管理」——新增批次号、根因类别（关闭前必填）、纠正措施自动派生成待办；②失效模式知识库 FMEA 轻量版——关闭自动沉淀知识 + 新问题录入「检索同类失效」；③文件台账改「归档」定位——工序/产线/生效/复审日期改标签（数据自动迁移）；④知识库条目多格式混排——文字/图片/表格块混合编辑与渲染 |
 | `0.8.0` | 后台常驻与系统托盘（2026-11-16）：①系统托盘图标（左键唤起窗口，右键「显示主界面 / 退出」）；②关闭窗口最小化到托盘（`settings.closeToTray`，默认开）；③开机自启（`--hidden` 静默启动，仅驻留托盘）；④设置页新增「后台与启动」卡片；⑤资讯推送成功/失败补发系统通知。9:00 自动日报不再依赖主窗口是否打开。详见第 3 节 |
+| `0.9.0` | 四项体验迭代（2026-11-16）：①待办完成动画总时长 0.9s → 0.42s；②「周报与复盘」升级为「日报与周报」——新增日报实体（日期/今日工作重点/明日工作计划/需要支持），支持从当日记录一键汇总初稿、复制为飞书日报表制表符行、导出 Markdown，周报支持复制完整邮件正文（含 To/Cc/Subject）与导出 `.eml`；身份在工作台首次启动确认一次并本地沿用；③「储能资讯」升级为「行业资讯」——拆分为「储能资讯」「AI 资讯」两个二级模块，共用 9:00 调度，各按主题分区汇总并附「对我们的意义」，储能资讯新增海辰视角关键词；④待办可根据已保存日报/周报自动提取「待确认待办」与「建议标记完成」清单，确认后写入或勾选完成。详见第 3 节 |
 
 ## 2. 已知问题
 
@@ -80,6 +81,19 @@
 - 兼容性：`settings.closeToTray` 为新增可选字段，默认 `true`；旧数据加载时经 `normalizeStore` 自动补齐，无需迁移。
 - 涉及文件：`electron/main.cjs`、`electron/preload.cjs`、`src/types.ts`、`src/constants.ts`、`src/services/storage.ts`、`src/App.tsx`、`src/pages/Settings.tsx`、`src/hooks/useNewsScheduler.ts`、`src/styles.css`。
 - 验证：`tsc -b` 通过、`vitest` 26/26 通过、`vite build` 通过。
+
+### 下个版本（v0.9.0）：四项体验迭代 ✅ 已完成（2026-11-16）
+
+> 需求方向：①待办完成动画提速；②「周报与复盘」改「日报与周报」并沉淀日报能力；③「储能资讯」扩为「行业资讯」（储能 + AI 双模块）；④待办可由历史报告自动提取并确认完成。
+
+1. ~~**待办完成动画提速**~~：已完成——总时长 0.9s → 0.42s（扫光 `0.32s`；对勾 `0.26s / 延迟 0.06s`；淡出 `延迟 0.32s / 时长 0.1s`），动画结束回写 `done` 的 `setTimeout` 同步改为 `420ms`。
+2. ~~**「周报与复盘」→「日报与周报」**~~：已完成——新增 `DailyReport` 实体（日期 / 今日工作重点 / 明日工作计划 / 需要支持，对齐飞书日报表四列）；日报面板支持「从当日记录汇总」（汇总当日完成待办 / 推进待办 / 关闭问题 / 新增问题 / 问题日志）、「复制日报行」（制表符分隔单行，可直接在飞书日报表粘贴分列）、「导出日报」（`.md`）；周报沿用 `WeeklyReport`，新增「复制邮件正文」（含 `To/Cc/Subject` 头）与「导出邮件 .eml」（Subject UTF-8 Base64 编码，可直接用 Outlook 打开）；设置页新增「日报表本人 sheet 名」；身份在首次启动时确认一次（`settings.identityConfirmedAt`），姓名/部门变更后需重新确认。半自动路径：不直连飞书、不发邮件，产物为剪贴板文本 + 本地文件。
+3. ~~**「储能资讯」→「行业资讯」**~~：已完成——拆为「储能资讯」与「AI 资讯」两个二级模块（`NewsCategory = 'storage' | 'ai'`），共用 9:00 调度；资讯源、文章、日报按 category 隔离（旧数据经 `normalizeStore` 补齐为 `storage`）；两个模块各自按主题分区汇总（储能：焦点动态 / 政策与市场 / 项目与订单 / 技术与产品 / 企业与资本；AI：今日焦点 / AI 技术前沿 / 工业与储能 AI / AI 与企业组织），每条附一句「对我们的意义」；储能资讯默认源新增海辰视角关键词（海辰储能 / Hithium）。
+4. ~~**待办由历史报告自动提取**~~：已完成——启动时后台解析已保存的日报「明日工作计划」与周报「下周计划」，生成「待确认待办」（确认后写入待办列表，来源记入 notes；可忽略并持久化到 `settings.dismissedTaskSuggestions`）；同时按报告进展生成「建议标记完成」清单，一键勾选完成。
+
+- 兼容性：`StoreData.dailyReports` 新增（旧数据经 `normalizeStore` 补齐空数组）；`newsArticles/newsDigests.category` 新增（旧数据默认 `storage`）；`AppSettings` 新增 `dailySheetName` / `identityConfirmedAt` / `dismissedTaskSuggestions` / `aiNewsFeeds`，均为可选字段。
+- 涉及文件：`src/types.ts`、`src/constants.ts`、`src/services/storage.ts`、`electron/main.cjs`、`electron/preload.cjs`、`src/utils/report.ts`（新增）、`src/services/reportAuto.ts`（新增）、`src/services/news.ts`、`src/hooks/useNewsScheduler.ts`、`src/pages/Report.tsx`、`src/pages/News.tsx`、`src/pages/Tasks.tsx`、`src/pages/Settings.tsx`、`src/components/AppLayout.tsx`、`src/App.tsx`、`src/styles.css`。
+- 验证：`tsc -b` 通过、`vitest` 26/26 通过、`vite build` 通过、`node --check electron/*.cjs` 通过。
 
 ### 体验改进（未定版本）✅ 已全部落地（v0.7.0，2026-10-26）
 

@@ -37,8 +37,8 @@ const PAGE_META: Record<PageKey, { title: string; subtitle: string; icon: ReactN
     icon: <DashboardOutlined />,
   },
   news: {
-    title: '储能资讯',
-    subtitle: '每天 9:00 自动汇总昨日储能行业动态',
+    title: '行业资讯',
+    subtitle: '每天 9:00 自动汇总储能与 AI 行业动态',
     icon: <ThunderboltOutlined />,
   },
   tasks: {
@@ -57,8 +57,8 @@ const PAGE_META: Record<PageKey, { title: string; subtitle: string; icon: ReactN
     icon: <FileTextOutlined />,
   },
   report: {
-    title: '周报与复盘',
-    subtitle: '自动汇总本周进展，减少手工整理',
+    title: '日报与周报',
+    subtitle: '自动汇总当日与本周进展，一键复制或导出',
     icon: <BarChartOutlined />,
   },
   knowledge: {
@@ -85,11 +85,11 @@ const PAGE_META: Record<PageKey, { title: string; subtitle: string; icon: ReactN
 
 const MENU_ITEMS = [
   { key: 'dashboard', icon: <DashboardOutlined />, label: '工作驾驶舱' },
-  { key: 'news', icon: <ThunderboltOutlined />, label: '储能资讯' },
+  { key: 'news', icon: <ThunderboltOutlined />, label: '行业资讯' },
   { key: 'tasks', icon: <CheckSquareOutlined />, label: '待办事项' },
   { key: 'issues', icon: <AlertOutlined />, label: '现场问题闭环' },
   { key: 'documents', icon: <FileTextOutlined />, label: '工艺文件台账' },
-  { key: 'report', icon: <BarChartOutlined />, label: '周报与复盘' },
+  { key: 'report', icon: <BarChartOutlined />, label: '日报与周报' },
   { key: 'knowledge', icon: <BookOutlined />, label: '个人知识库' },
   {
     key: 'extensions',

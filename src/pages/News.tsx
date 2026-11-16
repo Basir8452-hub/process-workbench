@@ -24,6 +24,7 @@ import {
   Space,
   Statistic,
   Switch,
+  Tabs,
   Tag,
   TimePicker,
   Typography,
@@ -32,15 +33,26 @@ import dayjs, { type Dayjs } from 'dayjs'
 import { useMemo, useState } from 'react'
 import type { PageKey } from '../components/AppLayout'
 import { MarkdownLite } from '../components/MarkdownLite'
-import { DEFAULT_NEWS_FEEDS, DEFAULT_NEWS_PUSH_TIME } from '../constants'
+import {
+  AI_NEWS_SECTIONS,
+  DEFAULT_AI_NEWS_FEEDS,
+  DEFAULT_NEWS_FEEDS,
+  DEFAULT_NEWS_PUSH_TIME,
+  NEWS_CATEGORY_LABELS,
+  NEWS_CATEGORY_ORDER,
+  STORAGE_NEWS_SECTIONS,
+} from '../constants'
 import {
   answerNewsQuestion,
   applyNewsResult,
+  articlesOfCategory,
+  digestsOfCategory,
+  feedsForCategory,
   generateNewsDigest,
   newsTargetDate,
 } from '../services/news'
 import { useAppStore } from '../store/AppStore'
-import type { NewsArticle, NewsDigest } from '../types'
+import type { NewsArticle, NewsCategory, NewsDigest } from '../types'
 import { formatDate, formatDateTime } from '../utils/date'
 
 interface NewsSettingsFormValues {
@@ -57,12 +69,23 @@ const STATUS_LABELS: Record<NewsDigest['status'], { label: string; color: string
   failed: { label: '生成失败', color: 'red' },
 }
 
+const CATEGORY_SECTIONS: Record<NewsCategory, string[]> = {
+  storage: STORAGE_NEWS_SECTIONS,
+  ai: AI_NEWS_SECTIONS,
+}
+
 function DigestStatusTag({ status }: { status: NewsDigest['status'] }) {
   const config = STATUS_LABELS[status]
   return <Tag color={config.color}>{config.label}</Tag>
 }
 
-export function NewsPage({ onNavigate }: { onNavigate: (key: PageKey) => void }) {
+function NewsCategoryPanel({
+  category,
+  onNavigate,
+}: {
+  category: NewsCategory
+  onNavigate: (key: PageKey) => void
+}) {
   const { data, mutate } = useAppStore()
   const [newsForm] = Form.useForm<NewsSettingsFormValues>()
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
@@ -73,15 +96,23 @@ export function NewsPage({ onNavigate }: { onNavigate: (key: PageKey) => void })
   const [answer, setAnswer] = useState('')
   const [sources, setSources] = useState<NewsArticle[]>([])
 
+  const label = NEWS_CATEGORY_LABELS[category]
+  const categoryArticles = useMemo(
+    () => articlesOfCategory(data.newsArticles, category),
+    [data.newsArticles, category],
+  )
   const digests = useMemo(
-    () => [...data.newsDigests].sort((a, b) => b.date.localeCompare(a.date)),
-    [data.newsDigests],
+    () =>
+      [...digestsOfCategory(data.newsDigests, category)].sort((a, b) =>
+        b.date.localeCompare(a.date),
+      ),
+    [data.newsDigests, category],
   )
   const selectedDigest =
     digests.find((digest) => digest.date === selectedDate) ?? digests[0] ?? null
   const articleMap = useMemo(
-    () => new Map(data.newsArticles.map((article) => [article.id, article])),
-    [data.newsArticles],
+    () => new Map(categoryArticles.map((article) => [article.id, article])),
+    [categoryArticles],
   )
   const digestArticles = useMemo(
     () =>
@@ -104,6 +135,7 @@ export function NewsPage({ onNavigate }: { onNavigate: (key: PageKey) => void })
         targetDate,
         settings: data.settings,
         existingArticles: data.newsArticles,
+        category,
       })
       mutate((draft) =>
         applyNewsResult(draft, result, data.settings.newsRetentionDays ?? 90),
@@ -116,7 +148,7 @@ export function NewsPage({ onNavigate }: { onNavigate: (key: PageKey) => void })
       } else if (result.digest.status === 'fallback') {
         message.warning(result.digest.error ?? '已生成原文摘要')
       } else {
-        message.success('储能行业日报已生成')
+        message.success(`${label}日报已生成`)
       }
     } catch (error) {
       console.error(error)
@@ -132,8 +164,9 @@ export function NewsPage({ onNavigate }: { onNavigate: (key: PageKey) => void })
     try {
       const result = await answerNewsQuestion({
         question,
-        articles: data.newsArticles,
+        articles: categoryArticles,
         settings: data.settings,
+        category,
       })
       setSources(result.sources)
       if (result.ok) {
@@ -155,10 +188,7 @@ export function NewsPage({ onNavigate }: { onNavigate: (key: PageKey) => void })
         .hour(Number.isFinite(hour) ? hour : 9)
         .minute(Number.isFinite(minute) ? minute : 0)
         .second(0),
-      newsFeeds: (data.settings.newsFeeds?.length
-        ? data.settings.newsFeeds
-        : DEFAULT_NEWS_FEEDS
-      ).join('\n'),
+      newsFeeds: feedsForCategory(data.settings, category).join('\n'),
       newsMaxArticles: data.settings.newsMaxArticles ?? 8,
       newsRetentionDays: data.settings.newsRetentionDays ?? 90,
     })
@@ -171,19 +201,22 @@ export function NewsPage({ onNavigate }: { onNavigate: (key: PageKey) => void })
       .split('\n')
       .map((feed) => feed.trim())
       .filter(Boolean)
+    const defaults = category === 'ai' ? DEFAULT_AI_NEWS_FEEDS : DEFAULT_NEWS_FEEDS
     mutate((draft) => ({
       ...draft,
       settings: {
         ...draft.settings,
         newsEnabled: values.newsEnabled,
         newsPushTime: values.newsPushTime.format('HH:mm'),
-        newsFeeds: feeds.length > 0 ? feeds : DEFAULT_NEWS_FEEDS,
+        ...(category === 'ai'
+          ? { aiNewsFeeds: feeds.length > 0 ? feeds : defaults }
+          : { newsFeeds: feeds.length > 0 ? feeds : defaults }),
         newsMaxArticles: values.newsMaxArticles,
         newsRetentionDays: values.newsRetentionDays,
       },
     }))
     setSettingsOpen(false)
-    message.success('资讯设置已保存')
+    message.success(`${label}设置已保存`)
   }
 
   const selectDigest = (digest: NewsDigest) => {
@@ -209,7 +242,7 @@ export function NewsPage({ onNavigate }: { onNavigate: (key: PageKey) => void })
           <Card variant="borderless" className="stat-card">
             <Statistic
               title="资讯库"
-              value={data.newsArticles.length}
+              value={categoryArticles.length}
               suffix="条"
               prefix={<ThunderboltOutlined style={{ color: '#d97706' }} />}
             />
@@ -246,14 +279,14 @@ export function NewsPage({ onNavigate }: { onNavigate: (key: PageKey) => void })
             className="panel-card news-digest-card"
             title={
               <span className="card-title">
-                <ThunderboltOutlined /> {selectedDigest?.title ?? '储能行业日报'}
+                <ThunderboltOutlined /> {selectedDigest?.title ?? `${label}日报`}
               </span>
             }
             extra={
               <Space>
                 {selectedDigest ? <DigestStatusTag status={selectedDigest.status} /> : null}
                 <Button icon={<SettingOutlined />} onClick={openSettings}>
-                  资讯设置
+                  {label}设置
                 </Button>
                 <Button
                   type="primary"
@@ -267,10 +300,7 @@ export function NewsPage({ onNavigate }: { onNavigate: (key: PageKey) => void })
             }
           >
             {!selectedDigest ? (
-              <Empty
-                description="还没有生成储能行业日报"
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-              >
+              <Empty description={`还没有生成${label}日报`} image={Empty.PRESENTED_IMAGE_SIMPLE}>
                 <Button type="primary" loading={generating} onClick={() => void handleGenerate()}>
                   立即生成昨日资讯
                 </Button>
@@ -364,9 +394,7 @@ export function NewsPage({ onNavigate }: { onNavigate: (key: PageKey) => void })
                   >
                     <div>
                       <div className="news-history-date">{digest.date}</div>
-                      <div className="news-history-sub">
-                        {digest.articleIds.length} 条资讯
-                      </div>
+                      <div className="news-history-sub">{digest.articleIds.length} 条资讯</div>
                     </div>
                     <DigestStatusTag status={digest.status} />
                   </button>
@@ -384,7 +412,7 @@ export function NewsPage({ onNavigate }: { onNavigate: (key: PageKey) => void })
             className="panel-card"
             title={
               <span className="card-title">
-                <RobotOutlined /> 资讯问答（RAG）
+                <RobotOutlined /> {label}问答（RAG）
               </span>
             }
           >
@@ -406,7 +434,11 @@ export function NewsPage({ onNavigate }: { onNavigate: (key: PageKey) => void })
                 rows={3}
                 value={question}
                 onChange={(event) => setQuestion(event.target.value)}
-                placeholder="例如：最近储能政策有哪些变化？哪些企业在扩产？"
+                placeholder={
+                  category === 'ai'
+                    ? '例如：最近哪些大模型发布了新版本？工业场景的 AI 落地有哪些案例？'
+                    : '例如：最近储能政策有哪些变化？哪些企业在扩产？海辰有哪些动态？'
+                }
                 onPressEnter={(event) => {
                   if (!event.shiftKey) {
                     event.preventDefault()
@@ -416,7 +448,7 @@ export function NewsPage({ onNavigate }: { onNavigate: (key: PageKey) => void })
               />
               <div className="news-qa-actions">
                 <span className="text-muted">
-                  从本地 {data.newsArticles.length} 条资讯中检索相关材料后回答
+                  从本地 {categoryArticles.length} 条资讯中检索相关材料后回答
                 </span>
                 <Button
                   type="primary"
@@ -456,10 +488,21 @@ export function NewsPage({ onNavigate }: { onNavigate: (key: PageKey) => void })
             className="panel-card"
             title={
               <span className="card-title">
-                <ThunderboltOutlined /> RAG 工作方式
+                <ThunderboltOutlined /> 日报结构
               </span>
             }
           >
+            <div className="news-section-list">
+              {CATEGORY_SECTIONS[category].map((section) => (
+                <Tag key={section} className="news-section-tag">
+                  {section}
+                </Tag>
+              ))}
+            </div>
+            <Typography.Paragraph className="settings-note" style={{ marginTop: 12 }}>
+              日报按以上主题分区整理，每条重点后会附一句「对我们的意义」，说明与
+              {category === 'ai' ? '工艺与制造岗位' : '海辰与工艺开发'}的关联。
+            </Typography.Paragraph>
             <div className="rag-steps">
               {[
                 ['01', '抓取入库', '按设定时间抓取 RSS 资讯，清洗后保存到本地资讯库。'],
@@ -483,7 +526,7 @@ export function NewsPage({ onNavigate }: { onNavigate: (key: PageKey) => void })
       </Row>
 
       <Modal
-        title="储能资讯设置"
+        title={`${label}设置`}
         open={settingsOpen}
         onCancel={() => setSettingsOpen(false)}
         onOk={handleSaveSettings}
@@ -511,8 +554,12 @@ export function NewsPage({ onNavigate }: { onNavigate: (key: PageKey) => void })
           </Row>
           <Form.Item
             name="newsFeeds"
-            label="资讯源 RSS（每行一个）"
-            extra="默认使用必应资讯的储能关键词 RSS，可替换为其他 RSS 2.0 源。"
+            label={`${label} RSS 源（每行一个）`}
+            extra={
+              category === 'ai'
+                ? '默认使用必应资讯的 AI 关键词 RSS，可替换为其他 RSS 2.0 源。'
+                : '默认使用必应资讯的储能关键词 RSS，并包含「海辰储能」「Hithium」等海辰视角源，可替换为其他 RSS 2.0 源。'
+            }
           >
             <Input.TextArea rows={6} placeholder="https://example.com/rss" />
           </Form.Item>
@@ -531,12 +578,32 @@ export function NewsPage({ onNavigate }: { onNavigate: (key: PageKey) => void })
           <Button
             type="link"
             style={{ paddingInline: 0 }}
-            onClick={() => newsForm.setFieldValue('newsFeeds', DEFAULT_NEWS_FEEDS.join('\n'))}
+            onClick={() =>
+              newsForm.setFieldValue(
+                'newsFeeds',
+                (category === 'ai' ? DEFAULT_AI_NEWS_FEEDS : DEFAULT_NEWS_FEEDS).join('\n'),
+              )
+            }
           >
             恢复默认资讯源
           </Button>
         </Form>
       </Modal>
     </div>
+  )
+}
+
+export function NewsPage({ onNavigate }: { onNavigate: (key: PageKey) => void }) {
+  const [activeKey, setActiveKey] = useState<NewsCategory>('storage')
+  return (
+    <Tabs
+      activeKey={activeKey}
+      onChange={(key) => setActiveKey(key as NewsCategory)}
+      items={NEWS_CATEGORY_ORDER.map((category) => ({
+        key: category,
+        label: NEWS_CATEGORY_LABELS[category],
+        children: <NewsCategoryPanel category={category} onNavigate={onNavigate} />,
+      }))}
+    />
   )
 }

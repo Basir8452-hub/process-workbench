@@ -3,17 +3,20 @@ import {
   EditOutlined,
   PlusOutlined,
   SearchOutlined,
+  BulbOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
   ExclamationCircleOutlined,
   UnorderedListOutlined,
 } from '@ant-design/icons'
 import {
+  Alert,
   Button,
   Card,
   Checkbox,
   Col,
   DatePicker,
+  Divider,
   Form,
   Input,
   message,
@@ -33,6 +36,7 @@ import dayjs, { type Dayjs } from 'dayjs'
 import { useEffect, useMemo, useState } from 'react'
 import { PriorityTag } from '../components/Tags'
 import { PRIORITY_OPTIONS } from '../constants'
+import { extractTaskCandidates, suggestCompletions } from '../services/reportAuto'
 import { useAppStore } from '../store/AppStore'
 import type { Task } from '../types'
 import { dueLabel, formatDate, formatDateTime, isDueSoon, isDueToday, isOverdue } from '../utils/date'
@@ -58,6 +62,88 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
   const [priorityFilter, setPriorityFilter] = useState<string>('all')
   /** 正在播放"完成"动画的待办 id（绿色扫过→对勾弹跳→淡出） */
   const [completingId, setCompletingId] = useState<string | null>(null)
+  /** 来自日报/周报的待办建议 */
+  const [suggestOpen, setSuggestOpen] = useState(false)
+  const [selectedCandidates, setSelectedCandidates] = useState<string[]>([])
+  const [selectedCompletions, setSelectedCompletions] = useState<string[]>([])
+
+  const candidates = useMemo(() => extractTaskCandidates(data), [data])
+  const completions = useMemo(() => suggestCompletions(data), [data])
+  const suggestionCount = candidates.length + completions.length
+
+  useEffect(() => {
+    setSelectedCandidates(candidates.map((candidate) => candidate.key))
+  }, [candidates])
+
+  useEffect(() => {
+    setSelectedCompletions(completions.map((item) => item.taskId))
+  }, [completions])
+
+  const addCandidates = () => {
+    const picked = candidates.filter((candidate) => selectedCandidates.includes(candidate.key))
+    if (picked.length === 0) {
+      message.warning('请先勾选要加入的待办')
+      return
+    }
+    const now = new Date().toISOString()
+    mutate((draft) => ({
+      ...draft,
+      tasks: [
+        ...picked.map((candidate) => ({
+          id: uid('task'),
+          title: candidate.title,
+          priority: candidate.priority,
+          dueDate: candidate.dueDate,
+          done: false,
+          notes: `来源：${candidate.sourceLabel}`,
+          createdAt: now,
+        })),
+        ...draft.tasks,
+      ],
+    }))
+    setSelectedCandidates([])
+    message.success(`已加入 ${picked.length} 条待办`)
+  }
+
+  const ignoreCandidates = () => {
+    const picked = candidates.filter((candidate) => selectedCandidates.includes(candidate.key))
+    if (picked.length === 0) {
+      message.warning('请先勾选要忽略的建议')
+      return
+    }
+    mutate((draft) => ({
+      ...draft,
+      settings: {
+        ...draft.settings,
+        dismissedTaskSuggestions: [
+          ...new Set([
+            ...(draft.settings.dismissedTaskSuggestions ?? []),
+            ...picked.map((candidate) => candidate.key),
+          ]),
+        ],
+      },
+    }))
+    setSelectedCandidates([])
+    message.success('已忽略所选建议，不再重复提示')
+  }
+
+  const completeSelected = () => {
+    const picked = completions.filter((item) => selectedCompletions.includes(item.taskId))
+    if (picked.length === 0) {
+      message.warning('请先勾选要完成的待办')
+      return
+    }
+    const now = new Date().toISOString()
+    const ids = picked.map((item) => item.taskId)
+    mutate((draft) => ({
+      ...draft,
+      tasks: draft.tasks.map((task) =>
+        ids.includes(task.id) ? { ...task, done: true, completedAt: now } : task,
+      ),
+    }))
+    setSelectedCompletions([])
+    message.success(`已标记完成 ${picked.length} 条待办`)
+  }
 
   const openCreate = () => {
     setEditing(null)
@@ -168,7 +254,7 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
       toggleTask(task, true)
       message.success('待办已完成')
       setCompletingId(null)
-    }, 900)
+    }, 420)
   }
 
   const filtered = useMemo(() => {
@@ -331,6 +417,23 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
 
   return (
     <div className="page-stack">
+      {suggestionCount > 0 ? (
+        <Alert
+          type="info"
+          showIcon
+          icon={<BulbOutlined />}
+          message={`根据已保存的日报与周报，发现 ${candidates.length} 条待确认待办${
+            completions.length > 0 ? `、${completions.length} 条建议标记完成的进展` : ''
+          }`}
+          description="候选来自日报「明日工作计划」与周报「下周工作计划」；确认后才会写入待办列表。"
+          action={
+            <Button size="small" type="primary" onClick={() => setSuggestOpen(true)}>
+              查看并确认
+            </Button>
+          }
+        />
+      ) : null}
+
       <Row gutter={16}>
         <Col xs={12} md={6}>
           <Card variant="borderless" className="stat-card">
@@ -495,6 +598,91 @@ export function TasksPage({ createSignal }: { createSignal: number }) {
           </Form.Item>
         </Form>
 
+      </Modal>
+
+      <Modal
+        title="日报与周报的待办建议"
+        open={suggestOpen}
+        onCancel={() => setSuggestOpen(false)}
+        footer={null}
+        width={720}
+        centered
+        styles={{ body: { maxHeight: 'calc(100vh - 220px)', overflowY: 'auto' } }}
+        destroyOnHidden
+      >
+        <div className="suggest-section">
+          <div className="suggest-header">
+            <div>
+              <div className="suggest-title">待确认待办（{candidates.length}）</div>
+              <div className="settings-note">来自报告的计划字段，确认后写入待办列表。</div>
+            </div>
+            <Space>
+              <Button size="small" onClick={ignoreCandidates}>
+                忽略所选
+              </Button>
+              <Button size="small" type="primary" onClick={addCandidates}>
+                加入待办
+              </Button>
+            </Space>
+          </div>
+          {candidates.length === 0 ? (
+            <div className="suggest-empty">暂无新的待办建议</div>
+          ) : (
+            <Checkbox.Group
+              value={selectedCandidates}
+              onChange={(values) => setSelectedCandidates(values as string[])}
+              className="suggest-list"
+            >
+              {candidates.map((candidate) => (
+                <Checkbox key={candidate.key} value={candidate.key} className="suggest-item">
+                  <div className="suggest-item-main">
+                    <div className="text-strong">{candidate.title}</div>
+                    <div className="table-subtext">
+                      {candidate.sourceLabel}
+                      {candidate.dueDate ? ` · 计划 ${formatDate(candidate.dueDate)}` : ''}
+                    </div>
+                  </div>
+                  <Tag color={candidate.source === 'daily' ? 'blue' : 'purple'}>
+                    {candidate.source === 'daily' ? '日报' : '周报'}
+                  </Tag>
+                </Checkbox>
+              ))}
+            </Checkbox.Group>
+          )}
+        </div>
+
+        <Divider />
+
+        <div className="suggest-section">
+          <div className="suggest-header">
+            <div>
+              <div className="suggest-title">建议标记完成（{completions.length}）</div>
+              <div className="settings-note">这些待办的内容已经出现在报告进展中。</div>
+            </div>
+            <Button size="small" type="primary" onClick={completeSelected}>
+              标记完成
+            </Button>
+          </div>
+          {completions.length === 0 ? (
+            <div className="suggest-empty">暂无建议标记完成的待办</div>
+          ) : (
+            <Checkbox.Group
+              value={selectedCompletions}
+              onChange={(values) => setSelectedCompletions(values as string[])}
+              className="suggest-list"
+            >
+              {completions.map((item) => (
+                <Checkbox key={item.taskId} value={item.taskId} className="suggest-item">
+                  <div className="suggest-item-main">
+                    <div className="text-strong">{item.task.title}</div>
+                    <div className="table-subtext">{item.reason}</div>
+                  </div>
+                  <PriorityTag value={item.task.priority} />
+                </Checkbox>
+              ))}
+            </Checkbox.Group>
+          )}
+        </div>
       </Modal>
     </div>
   )

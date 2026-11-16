@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('workbench', {
   importStore: () => ipcRenderer.invoke('store:import'),
   saveExcel: (buffer, defaultName) => ipcRenderer.invoke('excel:save', buffer, defaultName),
   openExcel: () => ipcRenderer.invoke('excel:open'),
+  saveTextFile: (payload) => ipcRenderer.invoke('file:save-text', payload),
   getAppInfo: () => ipcRenderer.invoke('app:info'),
   openDataFolder: (kind) => ipcRenderer.invoke('app:open-folder', kind),
   getTrayStatus: () => ipcRenderer.invoke('app:tray-status'),

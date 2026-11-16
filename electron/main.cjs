@@ -32,6 +32,7 @@ const defaultStore = {
   documents: [],
   knowledge: [],
   reports: [],
+  dailyReports: [],
   newsArticles: [],
   newsDigests: [],
   toeflRecords: [],
@@ -269,6 +270,21 @@ ipcMain.handle('excel:open', async () => {
     buffer,
     name: path.basename(result.filePaths[0]),
   }
+})
+
+ipcMain.handle('file:save-text', async (_event, payload) => {
+  const { content = '', defaultName = '导出.txt', filters } = payload || {}
+  const result = await dialog.showSaveDialog(mainWindow, {
+    title: '导出文件',
+    defaultPath: defaultName,
+    filters:
+      Array.isArray(filters) && filters.length
+        ? filters
+        : [{ name: '文本文件', extensions: ['txt'] }],
+  })
+  if (result.canceled || !result.filePath) return { canceled: true }
+  await fsp.writeFile(result.filePath, String(content), 'utf8')
+  return { canceled: false, path: result.filePath }
 })
 
 ipcMain.handle('app:info', async () => ({

@@ -118,9 +118,37 @@ export interface WeeklyReport {
   updatedAt: string
 }
 
+/** 日报（对齐飞书日报表四列：日期 / 今日工作重点 / 明日工作计划 / 需要支持） */
+export interface DailyReport {
+  id: ID
+  /** YYYY-MM-DD */
+  date: string
+  /** 今日工作重点 */
+  highlights: string
+  /** 明日工作计划 */
+  nextPlan: string
+  /** 需要支持 */
+  support?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface DailyReportDraft {
+  date: string
+  highlights: string
+  nextPlan: string
+  support?: string
+}
+
 export interface AppSettings {
   ownerName?: string
   department?: string
+  /** 日报表本人 sheet 名（如「20蔡晨潇」），用于生成可粘贴的日报行 */
+  dailySheetName?: string
+  /** 身份确认完成时间（ISO）；为空表示尚未在工作台确认过身份 */
+  identityConfirmedAt?: string
+  /** 已忽略的自动待办候选（标题归一化后的标识） */
+  dismissedTaskSuggestions?: string[]
   expiryWarningDays?: number
   aiBaseUrl?: string
   aiApiKey?: string
@@ -129,6 +157,8 @@ export interface AppSettings {
   newsEnabled?: boolean
   newsPushTime?: string
   newsFeeds?: string[]
+  /** AI 资讯专用 RSS 源（储能资讯沿用 newsFeeds） */
+  aiNewsFeeds?: string[]
   newsMaxArticles?: number
   newsRetentionDays?: number
   /** 关闭窗口时最小化到系统托盘（后台常驻），默认 true */
@@ -162,6 +192,9 @@ export interface NewsFeedItem {
   publishedAt: string
 }
 
+/** 资讯分类：储能资讯 / AI 资讯 */
+export type NewsCategory = 'storage' | 'ai'
+
 export interface NewsFetchResult {
   ok: boolean
   items: NewsFeedItem[]
@@ -177,6 +210,8 @@ export interface NewsArticle {
   publishedAt: string
   fetchedAt: string
   digestDate: string
+  /** 所属资讯分类（v0.9.0 新增；旧数据默认按储能资讯处理） */
+  category?: NewsCategory
 }
 
 export type NewsDigestStatus = 'success' | 'fallback' | 'failed'
@@ -190,6 +225,8 @@ export interface NewsDigest {
   articleIds: ID[]
   status: NewsDigestStatus
   error?: string
+  /** 所属资讯分类（v0.9.0 新增；旧数据默认按储能资讯处理） */
+  category?: NewsCategory
   createdAt: string
   updatedAt: string
 }
@@ -229,6 +266,7 @@ export interface StoreData {
   documents: ProcessDocument[]
   knowledge: KnowledgeItem[]
   reports: WeeklyReport[]
+  dailyReports: DailyReport[]
   newsArticles: NewsArticle[]
   newsDigests: NewsDigest[]
   toeflRecords: ToeflDailyRecord[]
@@ -299,6 +337,11 @@ export interface WorkbenchApi {
   aiEncryptKey: (plain: string) => Promise<string | null>
   aiDecryptKey: (encoded: string) => Promise<string | null>
   fetchNewsFeeds: (feedUrls: string[]) => Promise<NewsFetchResult>
+  saveTextFile: (payload: {
+    content: string
+    defaultName: string
+    filters?: { name: string; extensions: string[] }[]
+  }) => Promise<FileResult>
   notify: (payload: { title: string; body: string }) => Promise<{ ok: boolean }>
 }
 

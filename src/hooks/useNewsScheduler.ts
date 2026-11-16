@@ -1,6 +1,6 @@
 import dayjs from 'dayjs'
 import { useEffect, useRef } from 'react'
-import { DEFAULT_NEWS_PUSH_TIME } from '../constants'
+import { DEFAULT_NEWS_PUSH_TIME, NEWS_CATEGORY_LABELS, NEWS_CATEGORY_ORDER } from '../constants'
 import {
   applyNewsResult,
   generateNewsDigest,
@@ -55,37 +55,47 @@ export function useNewsScheduler() {
       if (!due) return
 
       const targetDate = newsTargetDate()
-      if (current.newsDigests.some((digest) => digest.date === targetDate)) return
       if (attemptedDateRef.current === targetDate) return
+      const pending = NEWS_CATEGORY_ORDER.filter(
+        (category) =>
+          !current.newsDigests.some(
+            (digest) => digest.date === targetDate && (digest.category ?? 'storage') === category,
+          ),
+      )
+      if (pending.length === 0) return
 
       attemptedDateRef.current = targetDate
       runningRef.current = true
 
       try {
-        const result = await generateNewsDigest({
-          targetDate,
-          settings,
-          existingArticles: current.newsArticles,
-        })
-        if (disposed) return
-        mutate((draft) =>
-          applyNewsResult(draft, result, settings.newsRetentionDays ?? 90),
-        )
-        if (result.digest.status === 'failed') {
-          await notify({
-            title: '储能日报生成失败',
-            body: `${targetDate}：${result.digest.error ?? '资讯抓取或摘要生成异常'}（下次启动会自动补生成）`,
+        for (const category of pending) {
+          const label = NEWS_CATEGORY_LABELS[category]
+          const result = await generateNewsDigest({
+            targetDate,
+            settings: dataRef.current.settings,
+            existingArticles: dataRef.current.newsArticles,
+            category,
           })
-        } else {
-          await notify({
-            title: '储能行业日报已生成',
-            body: `${targetDate} · ${result.digest.articleIds.length} 条资讯`,
-          })
+          if (disposed) return
+          mutate((draft) =>
+            applyNewsResult(draft, result, settings.newsRetentionDays ?? 90),
+          )
+          if (result.digest.status === 'failed') {
+            await notify({
+              title: `${label}日报生成失败`,
+              body: `${targetDate}：${result.digest.error ?? '资讯抓取或摘要生成异常'}（下次启动会自动补生成）`,
+            })
+          } else {
+            await notify({
+              title: `${label}日报已生成`,
+              body: `${targetDate} · ${result.digest.articleIds.length} 条资讯`,
+            })
+          }
         }
       } catch (error) {
-        console.error('自动生成储能资讯失败', error)
+        console.error('自动生成行业资讯失败', error)
         await notify({
-          title: '储能日报生成失败',
+          title: '行业资讯日报生成失败',
           body: `${targetDate}：${error instanceof Error ? error.message : String(error)}（下次启动会自动补生成）`,
         })
       } finally {
