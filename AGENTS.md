@@ -2,6 +2,7 @@
 
 本文件写给接手本项目的 AI Agent 或开发者。开始修改前，请先按顺序阅读：
 
+0. `docs/HANDOFF.md` —— **交接总览，先读这份**（当前版本现状、v0.7.0 四项改动位置、迁移规则、坑与红线）
 1. `README.md`
 2. `docs/ARCHITECTURE.md`
 3. `docs/DATA_MODEL.md`
@@ -26,7 +27,7 @@ npm run build        # tsc -b && vite build
 npm run package      # Windows NSIS 安装包
 ```
 
-当前打包输出目录在 `package.json` 的 `build.directories.output`，当前是 `release-v7/`。修改版本号时同步修改输出目录，避免旧安装包混淆。
+当前打包输出目录由 `package.json` 的 `build.directories.output` 决定，当前是 `release/`（已在 `.gitignore` 中忽略）。切换版本改目录时注意同步此说明，避免旧安装包混淆。
 
 图标文件已包含在仓库中：`build/icon.ico`、`build/icon.png`、`build/icon-512.png`、`public/icon.png`。如需重新生成（例如替换图标或图标损坏），运行：
 
@@ -119,18 +120,27 @@ powershell -ExecutionPolicy Bypass -File scripts/generate-icon.ps1
 - Electron 开发模式会出现 CSP 安全警告，属于已知项。
 - 安装包未签名，Windows SmartScreen 可能拦截。
 - 9:00 推送依赖应用运行；应用完全退出时不会后台推送。
+- 资讯默认源是必应 RSS，公司网络受限时需在「设置 → 资讯」换源。
+- 无自动更新机制，新版本需手动下载安装。
+- 多人共用同一 Windows 账号时共享同一份数据文件。
 - `settings.aiApiKey` 是本地明文，正式多人使用前应改为系统凭据库或加密存储。
-- 暂无自动化测试和 CI。
+
+## 测试与 CI（已具备）
+
+- 单元测试：`npm test`（vitest，26 个用例），覆盖 `storage.test.ts`（数据归一化 + v0.7.0 迁移路径）与 `toefl.test.ts`（选题算法）。
+- CI：`.github/workflows/release.yml`，推送 `v*` 标签或手动触发，在 windows-latest 上自动安装依赖 → 构建 → 跑测试 → 打包 NSIS 安装版 + 便携版 → 发布到 GitHub Releases。
+- 新增业务逻辑（尤其是迁移、算法、校验）应补对应 `.test.ts`，CI 会一并跑。
 
 ## 完成定义
 
 提交前至少完成：
 
 1. `npx tsc --noEmit` 通过
-2. `npm run build` 通过
-3. 手工验证新增页面/功能的增删改查和刷新后数据保留
-4. 如果涉及打包：`npm run package` 成功，并启动 `release-*/win-unpacked/工艺工作台.exe` 验证
-5. 不引入新的控制台运行时错误
-6. 不把测试数据、API Key、用户数据文件带进提交
+2. `npm test` 通过
+3. `npm run build` 通过
+4. 手工验证新增页面/功能的增删改查和刷新后数据保留
+5. 如果涉及打包：`npm run package` 成功，并启动 `release/win-unpacked/工艺工作台.exe` 验证
+6. 不引入新的控制台运行时错误
+7. 不把测试数据、API Key、用户数据文件带进提交
 
 详细验收步骤见 `docs/TESTING.md`。

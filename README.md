@@ -14,10 +14,10 @@
 | 工作驾驶舱 | 今日待办、超期问题、文件到期、问题状态分布、业务运行指标（本周新增/关闭问题、本月沉淀知识、平均关闭周期）、最近问题、AI 助手、个人信息 |
 | 储能资讯 | 每日 9:00 自动生成昨日日报、历史推送、RSS 配置、RAG 资讯问答 |
 | 待办事项 | 增删改查、优先级、截止日、关联问题/文件/知识、进度反馈、完成动效 |
-| 现场问题闭环 | 问题台账、分级、状态流、5Why、临时/永久措施、跟催记录、关闭、沉淀案例 |
-| 工艺文件台账 | 文件登记、版本、受控状态、复审到期提醒、Excel 导入导出 |
+| 现场问题闭环 | 问题台账、分级、状态流、5Why、临时/永久措施、批次号、根因类别（关闭前必填）、跟催记录、关闭自动沉淀案例、永久措施自动派生纠正待办、同类失效检索 |
+| 工艺文件台账 | 文件登记、版本、受控状态、归档标签（多选筛选）、Excel 导入导出 |
 | 周报与复盘 | 按周自动汇总（结构化草稿 + 一键填入）、编辑、保存历史周报、导出 Excel |
-| 个人知识库 | 案例/标准/模板/经验、标签、关联问题、Excel 批量导入导出 |
+| 个人知识库 | 案例/标准/模板/经验、标签、关联问题、文字/图片/表格多格式混排、Excel 批量导入导出 |
 | 设置 | 个人信息、文件提醒天数、AI 模型、数据备份/恢复、数据目录 |
 
 ## 交接方式
@@ -62,8 +62,8 @@ npm run package    # 构建并生成 Windows NSIS 安装包
 打包产物默认输出到 `release/`：
 
 ```text
-release/工艺工作台 Setup 0.5.4.exe      # NSIS 安装版
-release/工艺工作台 0.5.4.exe            # 便携版（免安装）
+release/Setup.0.7.0.exe      # NSIS 安装版
+release/0.7.0.exe            # 便携版（免安装）
 ```
 
 版本号以 `package.json` 为准；推送 `v*` 标签到 GitHub 后，Actions 会自动构建并发布这两个安装包到 Releases（见下文「自动化发布」）。
@@ -144,21 +144,24 @@ Windows: %APPDATA%\<应用名>\workbench-data.json
 
 ## 测试与自动化
 
-- 单元测试：`npm test`（vitest，覆盖日期工具、选题算法、数据校验等核心逻辑，22 个用例）。
+- 单元测试：`npm test`（vitest，覆盖数据归一化与迁移、选题算法等核心逻辑，26 个用例）。
 - 自动化发布：`.github/workflows/release.yml` 在推送 `v*` 标签时自动执行——安装依赖（npmmirror 镜像）→ 构建 → 跑测试 → 打包 NSIS 安装版 + 便携版 → 发布到 GitHub Releases。推送标签即可获得可下载的安装包，无需本地打包。
 
 ## 版本发布流程
 
 1. 在 `package.json` 更新版本号（唯一源头），同步 `package-lock.json`、`docs/RELEASE_CHECKLIST.md`。
-2. 提交并打标签：`git tag v0.5.4`。
+2. 提交并打标签：`git tag v0.7.0`（tag 必须与 package.json 版本一致）。
 3. 双击 `push-to-github.bat`（或手动 `git push origin main --tags`）推送。
 4. 等待 GitHub Actions 构建完成，从 Releases 页下载 `Setup x.y.z.exe` 安装版或便携版。
 
 ## 交接阅读顺序
 
-1. [AGENTS.md](AGENTS.md)
-2. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-3. [docs/DATA_MODEL.md](docs/DATA_MODEL.md)
-4. [docs/TESTING.md](docs/TESTING.md)
-5. [docs/ROADMAP.md](docs/ROADMAP.md)
-6. [docs/AGENT_PROMPT.md](docs/AGENT_PROMPT.md)
+> **先读 [docs/HANDOFF.md](docs/HANDOFF.md)** —— 一份集成上下文，读完即可无缝接手；下面是按需深入的细节文档。
+
+1. [docs/HANDOFF.md](docs/HANDOFF.md) ← 交接总览（v0.7.0）
+2. [AGENTS.md](AGENTS.md)
+3. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+4. [docs/DATA_MODEL.md](docs/DATA_MODEL.md)
+5. [docs/TESTING.md](docs/TESTING.md)
+6. [docs/ROADMAP.md](docs/ROADMAP.md)
+7. [docs/AGENT_PROMPT.md](docs/AGENT_PROMPT.md)

@@ -189,7 +189,7 @@ AiChat 组件
   - `build/icon.ico` 作为 EXE 图标
   - `build/icon.png` 作为窗口图标，需要包含在 `files` 中
   - `dist/**/*`、`electron/**/*`、`package.json` 进入 asar
-- 当前输出目录：`release-v7/`。
+- 当前输出目录：`release/`（见 `package.json` 的 `build.directories.output`，已加入 `.gitignore`）。
 
 ## 10. 平台迁移边界
 
