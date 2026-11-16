@@ -1,10 +1,28 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, Notification, safeStorage } = require('electron')
+const {
+  app,
+  BrowserWindow,
+  ipcMain,
+  dialog,
+  shell,
+  Notification,
+  safeStorage,
+  Tray,
+  Menu,
+  nativeImage,
+} = require('electron')
 const path = require('node:path')
 const fs = require('node:fs')
 const fsp = fs.promises
 
 const isDev = !app.isPackaged
 let mainWindow = null
+let tray = null
+// 是否正在真正退出（区分「关闭窗口」与「退出应用」）
+let isQuitting = false
+// 关闭窗口时是否最小化到托盘，默认开启；由渲染层同步用户设置
+let closeToTray = true
+// 开机自启时以 --hidden 启动：创建窗口但不显示，仅在托盘常驻
+let suppressFirstShow = process.argv.includes('--hidden')
 
 const defaultStore = {
   version: 1,
@@ -113,7 +131,24 @@ function createWindow() {
   })
 
   mainWindow.once('ready-to-show', () => {
+    // 开机自启（--hidden）时首次不弹窗，仅驻留托盘
+    if (suppressFirstShow) {
+      suppressFirstShow = false
+      return
+    }
     mainWindow.show()
+  })
+
+  // 关闭窗口：常驻托盘模式下隐藏窗口而不退出应用
+  mainWindow.on('close', (event) => {
+    if (!isQuitting && closeToTray) {
+      event.preventDefault()
+      mainWindow.hide()
+    }
+  })
+
+  mainWindow.on('closed', () => {
+    mainWindow = null
   })
 
   if (isDev) {
@@ -126,6 +161,47 @@ function createWindow() {
     if (/^https?:\/\//.test(url)) shell.openExternal(url)
     return { action: 'deny' }
   })
+}
+
+/** 显示并聚焦主窗口；窗口已被销毁时重新创建 */
+function showMainWindow() {
+  if (!mainWindow) {
+    createWindow()
+    return
+  }
+  if (mainWindow.isMinimized()) mainWindow.restore()
+  mainWindow.show()
+  mainWindow.focus()
+}
+
+/** 创建系统托盘图标与右键菜单 */
+function createTray() {
+  if (tray) return
+  const iconPath = path.join(__dirname, '..', 'build', 'icon.png')
+  let image = nativeImage.createFromPath(iconPath)
+  if (image.isEmpty()) {
+    // 图标缺失时降级：不常驻托盘，避免关闭窗口后程序无法再被唤起
+    console.warn('托盘图标加载失败，已禁用「关闭窗口最小化到托盘」')
+    closeToTray = false
+    return
+  }
+  image = image.resize({ width: 16, height: 16 })
+  tray = new Tray(image)
+  tray.setToolTip('工艺工作台')
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: '显示主界面', click: () => showMainWindow() },
+      { type: 'separator' },
+      {
+        label: '退出',
+        click: () => {
+          isQuitting = true
+          app.quit()
+        },
+      },
+    ]),
+  )
+  tray.on('click', () => showMainWindow())
 }
 
 ipcMain.handle('store:load', async () => readStore())
@@ -207,6 +283,29 @@ ipcMain.handle('app:open-folder', async (_event, kind) => {
   await ensureDir(target)
   await shell.openPath(target)
   return { ok: true, path: target }
+})
+
+ipcMain.handle('app:tray-status', async () => ({
+  closeToTray,
+  autoLaunch: app.getLoginItemSettings().openAtLogin,
+  platform: process.platform,
+  packaged: app.isPackaged,
+}))
+
+ipcMain.handle('app:set-close-to-tray', async (_event, value) => {
+  // 托盘不可用时不允许开启常驻，避免关闭窗口后程序无法再被唤起
+  closeToTray = Boolean(value) && Boolean(tray)
+  return { ok: true, closeToTray }
+})
+
+ipcMain.handle('app:set-auto-launch', async (_event, value) => {
+  const openAtLogin = Boolean(value)
+  // 开机自启时带 --hidden，登录后静默驻留托盘、不弹窗
+  app.setLoginItemSettings({
+    openAtLogin,
+    args: openAtLogin ? ['--hidden'] : [],
+  })
+  return { ok: true, autoLaunch: app.getLoginItemSettings().openAtLogin }
 })
 
 function buildChatEndpoint(baseUrl) {
@@ -420,12 +519,18 @@ ipcMain.handle('app:notify', async (_event, payload) => {
 })
 
 app.whenReady().then(() => {
+  createTray()
   createWindow()
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    showMainWindow()
   })
 })
 
+app.on('before-quit', () => {
+  isQuitting = true
+})
+
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit()
+  // 常驻托盘：窗口隐藏时进程保留；仅在关闭常驻（用户主动关闭窗口）时退出
+  if (!closeToTray) app.quit()
 })

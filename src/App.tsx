@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { Spin } from 'antd'
 import { AppLayout, type PageKey } from './components/AppLayout'
 import { useNewsScheduler } from './hooks/useNewsScheduler'
+import { setCloseToTray } from './services/storage'
 import { useAppStore } from './store/AppStore'
 import { DashboardPage } from './pages/Dashboard'
 
@@ -32,12 +33,19 @@ function PageSuspense({ children }: { children: ReactNode }) {
 }
 
 export function App() {
-  const { loading } = useAppStore()
+  const { data, loading } = useAppStore()
   const [active, setActive] = useState<PageKey>('dashboard')
   const [createTarget, setCreateTarget] = useState<PageKey | null>(null)
   const [createSignal, setCreateSignal] = useState(0)
 
   useNewsScheduler()
+
+  // 把「关闭窗口时最小化到托盘」的用户设置同步给主进程
+  const closeToTray = data.settings.closeToTray ?? true
+  useEffect(() => {
+    if (loading) return
+    void setCloseToTray(closeToTray)
+  }, [loading, closeToTray])
 
   const navigate = (key: PageKey, create = false) => {
     setActive(key)

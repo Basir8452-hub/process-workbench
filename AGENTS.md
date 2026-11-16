@@ -120,7 +120,7 @@ powershell -ExecutionPolicy Bypass -File scripts/generate-icon.ps1
 - Ant Design 6 的 `List` 组件仍有弃用提示，迁移到 `Listy` 前可暂时忽略。
 - Electron 开发模式会出现 CSP 安全警告，属于已知项。
 - 安装包未签名，Windows SmartScreen 可能拦截。
-- 9:00 推送依赖应用运行；应用完全退出时不会后台推送。
+- 9:00 推送依赖应用运行；开启「后台常驻」（系统托盘，默认开）后关闭主窗口不退出、推送照常，仅托盘右键「退出」后不再推送。
 - 资讯默认源是必应 RSS，公司网络受限时需在「设置 → 资讯」换源。
 - 无自动更新机制，新版本需手动下载安装。
 - 多人共用同一 Windows 账号时共享同一份数据文件。

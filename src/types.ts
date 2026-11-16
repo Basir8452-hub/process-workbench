@@ -131,6 +131,8 @@ export interface AppSettings {
   newsFeeds?: string[]
   newsMaxArticles?: number
   newsRetentionDays?: number
+  /** 关闭窗口时最小化到系统托盘（后台常驻），默认 true */
+  closeToTray?: boolean
 }
 
 export interface AiChatMessage {
@@ -240,6 +242,22 @@ export interface AppInfo {
   version: string
 }
 
+export interface TrayStatus {
+  /** 关闭窗口时是否最小化到托盘 */
+  closeToTray: boolean
+  /** 是否已开启开机自启 */
+  autoLaunch: boolean
+  platform: string
+  /** 是否为安装版（开机自启仅在安装版生效） */
+  packaged: boolean
+}
+
+export interface TrayToggleResult {
+  ok: boolean
+  closeToTray?: boolean
+  autoLaunch?: boolean
+}
+
 export interface SaveResult {
   ok: boolean
   path?: string
@@ -274,6 +292,9 @@ export interface WorkbenchApi {
   openExcel: () => Promise<ExcelOpenResult>
   getAppInfo: () => Promise<AppInfo>
   openDataFolder: (kind: 'data' | 'backup') => Promise<SaveResult>
+  getTrayStatus: () => Promise<TrayStatus>
+  setCloseToTray: (value: boolean) => Promise<TrayToggleResult>
+  setAutoLaunch: (value: boolean) => Promise<TrayToggleResult>
   aiChat: (request: AiChatRequest) => Promise<AiChatResult>
   aiEncryptKey: (plain: string) => Promise<string | null>
   aiDecryptKey: (encoded: string) => Promise<string | null>

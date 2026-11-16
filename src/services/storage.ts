@@ -10,6 +10,8 @@ import type {
   RootCauseCategory,
   SaveResult,
   StoreData,
+  TrayStatus,
+  TrayToggleResult,
 } from '../types'
 
 const LOCAL_KEY = 'process-workbench:data'
@@ -179,6 +181,27 @@ export async function openDataFolder(kind: 'data' | 'backup'): Promise<SaveResul
     return window.workbench.openDataFolder(kind)
   }
   return { ok: true, path: kind === 'backup' ? '浏览器备份' : '浏览器数据' }
+}
+
+export async function getTrayStatus(): Promise<TrayStatus> {
+  if (window.workbench?.getTrayStatus) {
+    return window.workbench.getTrayStatus()
+  }
+  return { closeToTray: false, autoLaunch: false, platform: 'web', packaged: false }
+}
+
+export async function setCloseToTray(value: boolean): Promise<TrayToggleResult> {
+  if (window.workbench?.setCloseToTray) {
+    return window.workbench.setCloseToTray(value)
+  }
+  return { ok: true, closeToTray: value }
+}
+
+export async function setAutoLaunch(value: boolean): Promise<TrayToggleResult> {
+  if (window.workbench?.setAutoLaunch) {
+    return window.workbench.setAutoLaunch(value)
+  }
+  return { ok: false, autoLaunch: false }
 }
 
 export async function fetchNewsFeeds(feedUrls: string[]): Promise<NewsFetchResult> {

@@ -9,6 +9,15 @@ import {
 import { showNotification } from '../services/storage'
 import { useAppStore } from '../store/AppStore'
 
+/** 发送桌面通知，失败只记录日志，不影响调度器 */
+async function notify(payload: { title: string; body: string }) {
+  try {
+    await showNotification(payload)
+  } catch (error) {
+    console.error('发送桌面通知失败', error)
+  }
+}
+
 /**
  * 本地定时推送：
  * - 应用启动后检查是否已过推送时间；
@@ -62,14 +71,23 @@ export function useNewsScheduler() {
         mutate((draft) =>
           applyNewsResult(draft, result, settings.newsRetentionDays ?? 90),
         )
-        if (result.digest.status !== 'failed') {
-          await showNotification({
+        if (result.digest.status === 'failed') {
+          await notify({
+            title: '储能日报生成失败',
+            body: `${targetDate}：${result.digest.error ?? '资讯抓取或摘要生成异常'}（下次启动会自动补生成）`,
+          })
+        } else {
+          await notify({
             title: '储能行业日报已生成',
             body: `${targetDate} · ${result.digest.articleIds.length} 条资讯`,
           })
         }
       } catch (error) {
         console.error('自动生成储能资讯失败', error)
+        await notify({
+          title: '储能日报生成失败',
+          body: `${targetDate}：${error instanceof Error ? error.message : String(error)}（下次启动会自动补生成）`,
+        })
       } finally {
         runningRef.current = false
       }

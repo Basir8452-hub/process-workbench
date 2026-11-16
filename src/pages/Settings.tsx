@@ -2,6 +2,7 @@ import {
   ApiOutlined,
   CloudDownloadOutlined,
   DatabaseOutlined,
+  DesktopOutlined,
   ExportOutlined,
   FolderOpenOutlined,
   ImportOutlined,
@@ -22,6 +23,7 @@ import {
   Row,
   Select,
   Space,
+  Switch,
   Typography,
 } from 'antd'
 import { useEffect, useState } from 'react'
@@ -30,11 +32,14 @@ import {
   backupStore,
   exportStore,
   getAppInfo,
+  getTrayStatus,
   importStore,
   openDataFolder,
+  setAutoLaunch,
+  setCloseToTray,
 } from '../services/storage'
 import { useAppStore } from '../store/AppStore'
-import type { AppInfo } from '../types'
+import type { AppInfo, TrayStatus } from '../types'
 import {
   downloadDocumentTemplate,
   downloadIssueTemplate,
@@ -92,10 +97,12 @@ export function SettingsPage() {
   const [form] = Form.useForm<SettingsFormValues>()
   const [aiForm] = Form.useForm<AiSettingsFormValues>()
   const [info, setInfo] = useState<AppInfo | null>(null)
+  const [trayStatus, setTrayStatus] = useState<TrayStatus | null>(null)
   const [testing, setTesting] = useState(false)
 
   useEffect(() => {
     void getAppInfo().then(setInfo)
+    void getTrayStatus().then(setTrayStatus)
   }, [])
 
   // 进入页面时尝试解密 API Key 回显到表单（不落明文存储）
@@ -215,6 +222,31 @@ export function SettingsPage() {
     }
   }
 
+  const handleToggleCloseToTray = (checked: boolean) => {
+    mutate((draft) => ({
+      ...draft,
+      settings: { ...draft.settings, closeToTray: checked },
+    }))
+    void setCloseToTray(checked)
+    message.success(
+      checked ? '已开启：关闭窗口时最小化到系统托盘' : '已关闭：关闭窗口时直接退出应用',
+    )
+  }
+
+  const handleToggleAutoLaunch = async (checked: boolean) => {
+    const result = await setAutoLaunch(checked)
+    if (!result.ok) {
+      message.error('设置开机自启失败，请检查系统权限')
+      return
+    }
+    setTrayStatus((prev) =>
+      prev ? { ...prev, autoLaunch: result.autoLaunch ?? checked } : prev,
+    )
+    message.success(
+      result.autoLaunch ? '已开启开机自启（登录后驻留系统托盘）' : '已关闭开机自启',
+    )
+  }
+
   return (
     <div className="page-stack">
       <Row gutter={16}>
@@ -309,6 +341,45 @@ export function SettingsPage() {
           </Card>
         </Col>
       </Row>
+
+      <Card
+        variant="borderless"
+        className="panel-card"
+        title={
+          <span className="card-title">
+            <DesktopOutlined /> 后台与启动
+          </span>
+        }
+      >
+        <div className="settings-switch-row">
+          <Switch
+            checked={data.settings.closeToTray ?? true}
+            onChange={handleToggleCloseToTray}
+          />
+          <div>
+            <div className="settings-switch-title">关闭窗口时最小化到系统托盘</div>
+            <div className="settings-note">
+              开启后关闭主窗口不会退出应用，程序常驻系统托盘，9:00 自动生成储能日报不依赖窗口打开；
+              需要彻底退出时，右键托盘图标选择「退出」。
+            </div>
+          </div>
+        </div>
+        <div className="settings-switch-row">
+          <Switch
+            checked={trayStatus?.autoLaunch ?? false}
+            onChange={(checked) => void handleToggleAutoLaunch(checked)}
+          />
+          <div>
+            <div className="settings-switch-title">开机自动启动</div>
+            <div className="settings-note">
+              登录 Windows 后自动在后台运行（驻留系统托盘，不弹出主窗口）。
+              {trayStatus && !trayStatus.packaged
+                ? ' 当前为开发模式，此项仅在安装版生效。'
+                : ''}
+            </div>
+          </div>
+        </div>
+      </Card>
 
       <Card
         variant="borderless"

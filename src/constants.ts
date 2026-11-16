@@ -160,6 +160,7 @@ export function createEmptyStore(): StoreData {
     toeflRecords: [],
     settings: {
       expiryWarningDays: 30,
+      closeToTray: true,
     },
   }
 }

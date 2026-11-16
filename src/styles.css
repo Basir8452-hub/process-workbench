@@ -1049,6 +1049,27 @@ tr.task-row-completing > td {
   line-height: 1.7;
 }
 
+.settings-switch-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 12px 0;
+}
+
+.settings-switch-row + .settings-switch-row {
+  border-top: 1px dashed #e2e8f0;
+}
+
+.settings-switch-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.settings-switch-row .settings-note {
+  margin-top: 4px;
+}
+
 .app-loading {
   display: flex;
   flex-direction: column;
