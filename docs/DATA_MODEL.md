@@ -188,7 +188,7 @@ type ContentBlock =
 | `department` | string? | 部门/岗位 |
 | `expiryWarningDays` | number? | 文件到期提醒天数，默认 30 |
 | `aiBaseUrl` | string? | OpenAI 兼容接口地址 |
-| `aiApiKey` | string? | API Key（本地明文） |
+| `aiApiKey` | string? | API Key（safeStorage base64 密文，兼容旧明文） |
 | `aiModel` | string? | 模型名称 |
 | `aiSystemPrompt` | string? | 自定义系统提示词 |
 | `newsEnabled` | boolean? | 是否开启自动推送 |

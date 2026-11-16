@@ -213,6 +213,6 @@ AiChat 组件
 
 - `contextIsolation: true`、`nodeIntegration: false`。
 - 渲染层只能调用白名单 IPC。
-- `settings.aiApiKey` 当前是本地明文，后续应迁移到系统凭据库或加密存储。
+- `settings.aiApiKey` 已由主进程用系统凭据库（safeStorage）加密为 base64 密文后落盘，读取时兼容早期版本留下的明文值；凭据库不可用时保存直接报错，不落明文。
 - 不要把 `workbench-data.json`、API Key、日志提交到 Git。
 - AI 上下文摘要默认关闭，避免无意把工厂数据发送给外部模型。

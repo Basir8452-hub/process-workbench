@@ -258,7 +258,7 @@
     "id": "uid()",
     "types": "不用 any 逃类型",
     "errorMessages": "中文、可操作话术，不要只 console.error",
-    "secrets": "AI Key 绝不进源码/日志/提交；aiApiKey 为本地明文，正式多人使用前应改系统凭据库",
+    "secrets": "AI Key 绝不进源码/日志/提交；aiApiKey 由 safeStorage 加密为 base64 密文落盘，读取兼容旧明文",
     "neverCommit": ["node_modules", "dist", "release*", "用户数据文件", "日志", "API Key"],
     "noRefactorWithoutConfirm": ["AppStore", "RAG（services/news.ts 的 BM25 逻辑）"],
     "requirementFlow": "用户提的新想法先写进 docs/ROADMAP.md 候选清单，讨论确认后再实现——「描述得很具体」不等于「授权直接开发」"

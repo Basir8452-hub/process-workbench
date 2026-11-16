@@ -178,7 +178,7 @@ Main (electron/main.cjs) —— 窗口、数据文件、备份、对话框、AI 
 
 - 不用 `any` 逃类型；日期用 `dayjs`（存储 `YYYY-MM-DD`，时间戳 ISO）；ID 用 `uid()`。
 - 错误提示写中文可操作话术，不要只 `console.error`。
-- AI Key 绝不进源码/日志/提交；`aiApiKey` 是本地明文，正式多人使用前应改系统凭据库。
+- AI Key 绝不进源码/日志/提交；`aiApiKey` 已由 safeStorage 加密为 base64 密文落盘，读取兼容旧明文。
 - 不要提交 `node_modules` / `dist` / `release*` / 用户数据文件 / 日志 / API Key。
 - 不要未经确认就重构 `AppStore` 与 RAG（`services/news.ts` 的 BM25 逻辑）。
 - **需求流转约定**：用户提的新想法先写进 `docs/ROADMAP.md` 的候选清单，讨论确认后再实现——「描述得很具体」不等于「授权直接开发」。

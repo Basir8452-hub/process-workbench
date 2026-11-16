@@ -112,7 +112,7 @@ powershell -ExecutionPolicy Bypass -File scripts/generate-icon.ps1
 - 日期统一用 `dayjs`；存储日期用 `YYYY-MM-DD`，时间戳用 ISO 字符串。
 - ID 统一用 `src/utils/id.ts` 的 `uid()`。
 - 错误处理要给出中文可操作提示，不要只 `console.error`。
-- 不要提交 `node_modules`、`dist`、`release-*`、用户数据文件、日志和 API Key。
+- 不要提交 `node_modules`、`dist`、`release/`、`release-*`、用户数据文件、日志和 API Key。
 - 不要删除用户已经手动修改过的文件内容，先读再改。
 
 ## 已知问题
@@ -124,7 +124,7 @@ powershell -ExecutionPolicy Bypass -File scripts/generate-icon.ps1
 - 资讯默认源是必应 RSS，公司网络受限时需在「设置 → 资讯」换源。
 - 无自动更新机制，新版本需手动下载安装。
 - 多人共用同一 Windows 账号时共享同一份数据文件。
-- `settings.aiApiKey` 是本地明文，正式多人使用前应改为系统凭据库或加密存储。
+- `settings.aiApiKey` 已改为系统凭据库（safeStorage）加密存储，读取兼容旧明文；网页预览（`npm run dev:web`）没有 Electron 主进程，无法保存 API Key。
 
 ## 测试与 CI（已具备）
 

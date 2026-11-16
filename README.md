@@ -125,7 +125,7 @@ Windows: %APPDATA%\<应用名>\workbench-data.json
 - 设置页支持立即备份、导出全部数据、导入数据。
 - 数据按 Windows 用户隔离；同一个 Windows 账号下共享同一份数据。
 
-> 注意：`settings.aiApiKey` 目前以明文保存在本地 JSON 中。不要把用户数据文件提交到 Git 或发给外部 Agent。
+> 注意：`settings.aiApiKey` 由主进程调用操作系统凭据库（Windows 凭据管理器 / safeStorage）加密后以 base64 密文写入数据文件，读取时兼容早期版本的明文值；凭据库不可用时保存会直接报错、不会落明文。`workbench-data.json` 的其余字段仍为明文 JSON，不要把用户数据文件提交到 Git 或发给外部 Agent。
 
 ## AI 与 RAG
 
@@ -139,7 +139,7 @@ Windows: %APPDATA%\<应用名>\workbench-data.json
 
 - 应用完全退出时不会在后台运行；9:00 自动推送依赖应用处于运行状态，或在 9:00 后首次启动时补生成。
 - 安装包未做代码签名，首次运行可能触发 Windows SmartScreen。
-- 数据为本地明文 JSON；多人共用 Windows 账号时会共享同一份数据。
+- 数据文件为本地明文 JSON（仅 API Key 走系统凭据库加密）；多人共用 Windows 账号时会共享同一份数据。
 - Ant Design 6 的 `List` 组件仍有弃用警告，不影响功能。
 
 ## 测试与自动化
