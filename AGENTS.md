@@ -3,6 +3,7 @@
 本文件写给接手本项目的 AI Agent 或开发者。开始修改前，请先按顺序阅读：
 
 0. `docs/HANDOFF.md` —— **交接总览，先读这份**（当前版本现状、v0.7.0 四项改动位置、迁移规则、坑与红线）
+0b. `docs/handoff.json` —— 上面这份的**机器可读版**，需要结构化字段（页面清单、实现位置映射、枚举、迁移规则、红线）时直接解析它
 1. `README.md`
 2. `docs/ARCHITECTURE.md`
 3. `docs/DATA_MODEL.md`

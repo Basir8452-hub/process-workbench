@@ -226,6 +226,7 @@ npm run build             # 必须成功
 | `README.md` | 项目定位、功能全貌、环境与命令 |
 | `AGENTS.md` | 架构约束、编码约定、完成定义 |
 | `docs/ARCHITECTURE.md` | 进程职责、IPC 契约、RAG 流程、构建打包 |
+| `docs/handoff.json` | 本文的**机器可读版**（schemaVersion 1.0）：版本/技术栈/页面清单/测试用例/四项改动实现位置映射/数据模型与迁移/枚举/Excel 列/交付红线/已知限制/候选改进，结构化字段可直接解析 |
 | `docs/DATA_MODEL.md` | 全部实体字段、迁移规则、容量限制 |
 | `docs/TESTING.md` | 手工验收步骤 |
 | `docs/ROADMAP.md` | 已完成版本史 + 待办候选（含 5 项已知问题转来的改进项） |
