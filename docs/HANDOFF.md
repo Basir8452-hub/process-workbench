@@ -96,7 +96,7 @@ Main (electron/main.cjs) —— 窗口、数据文件、备份、对话框、AI 
 - 旧数据迁移：`src/constants.ts` 的 `documentLegacyToTags()`，转成「工序:xxx」「产线:xxx」前缀标签。
 - 页面：`src/pages/Documents.tsx` 整页重写——标签 `Select mode="tags"` + 标签多选筛选（`tagFilter: string[]`），统计卡改为「文件总数/受控/草稿·审批中/作废归档」。
 - Excel：`src/utils/excel.ts` 的 `DOC_HEADERS` 8 列 = 文件编号/名称/类型/版本/状态/标签/路径/备注；导入兼容旧的「工序段」「产线」列并转成标签。
-- **连带影响**：`Dashboard.tsx`、`Report.tsx`、`AiChat.tsx`、`excel.ts` 中原「文件复审到期」相关逻辑（`expiringDocs`、`daysUntil`/`isWithinDays`）已全部移除。改这几个文件时不要再引用这些旧符号。
+- **连带影响**：`Dashboard.tsx`、`Report.tsx`、`AiChat.tsx`、`excel.ts` 中原「文件复审到期」业务逻辑（`expiringDocs`）已全部移除，改这几个文件时不要再引用 `expiringDocs`。注意 `src/utils/date.ts` 里的 `daysUntil` / `isWithinDays` 是**通用日期工具、仍然保留**（`daysUntil` 被 `isOverdue`/`isDueToday`/`isDueSoon`/`dueLabel` 使用，别误删）。
 
 ### 4.4 知识库多格式混排
 
