@@ -21,6 +21,9 @@ yarn-error.log*
 workbench-data.json
 backups/
 
+# Local archives / handoff packages
+版本管理/
+
 # OS / editor
 .DS_Store
 Thumbs.db
